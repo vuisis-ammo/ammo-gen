@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="image">
+
+  <sponsor name="edu.vu.isis.ammo.camera" />
+
+  <relation name="distribution">
+     <field type="SERIAL" name="string form">
+     </field>
+     <field type="SERIAL" name="byte array form">
+     </field>
+
+     <field type="FILE" name="data" default="">
+     </field>
+     <field type="TEXT" name="display name" default="">
+     </field>
+     <field type="INTEGER" name="size" default="">
+     </field>
+     <field type="TEXT" name="title" default="">
+     </field>
+     <field type="TEXT" name="description" default="">
+     </field>
+     <field type="REAL" name="longitude" default="">
+     </field>
+     <field type="REAL" name="latitude" default="">
+     </field>
+  </relation>
+
+</content-provider>

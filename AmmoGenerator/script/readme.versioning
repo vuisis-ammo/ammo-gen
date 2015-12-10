@@ -1,0 +1,15 @@
+
+http://mojo.codehaus.org/versions-maven-plugin/set-mojo.html
+
+The version of the current project is set by...
+
+  mvn version:set -DnewVersoin=1.7.0-SNAPSHOT
+
+Then the children are set to match...
+
+  mvn versin:update-child-modules
+
+Check to see if there are new dependencies...
+
+  mvn versions:display-dependency-updates
+

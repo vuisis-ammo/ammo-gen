@@ -1,0 +1,10 @@
+gen0/
+gen/
+bin/
+lib/
+target/
+*.class
+*.swp
+target/
+tests/
+

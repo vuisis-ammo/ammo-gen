@@ -1,0 +1,157 @@
+
+<!-- special ammogen targets to be used with the ant run maven plugin -->
+<!-- NOTE: we have to repeat the taskdef in each target because of the maven.plugin.classpath ref -->
+
+<project name="ammo maven targets" default="generate-provider">
+
+  <target name="validate">
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+    
+    <property name="valid" value="true">
+    </property>
+
+    <if>
+      <and>
+        <equals arg1="${ammogen.type}" arg2="provider" casesensitive="false"/>
+        <not>
+          <isset property="ammogen.schema.lib"/>
+        </not>
+      </and>
+      <then>
+        <echo level="error">Providers should have a "ammogen.schema.lib" property specifying the maven tuple of the schema lib jar</echo>
+        <var name="valid" unset="true"/>
+      </then>
+    </if>
+
+
+    <if>
+      <not>
+        <isset property="ammogen.contract.file"/>
+      </not>
+      <then>
+        <echo level="error">"ammogen.contract.file" should point to the contract file</echo>
+        <var name="valid" unset="true"/>
+      </then>
+    </if>
+
+    <fail unless="valid"/>
+  </target>
+  
+  <target name="init">
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+    
+    <if>
+      <equals arg1="${ammogen.type}" arg2="provider" casesensitive="false"/>
+      <then>
+        <property name="ammogen.template.dir" value="${basedir}/target/generator-food"/>
+        <mkdir dir="${ammogen.template.dir}" />
+        <propertycopy name="schemalib" from="${ammogen.schema.lib}" />
+        <unzip dest="${ammogen.template.dir}" src="${schemalib}" />
+      </then>
+      <else>
+        <property name="ammogen.template.dir" value="${basedir}/src/main/resources"/>
+      </else>
+    </if>
+  </target>
+
+  <target name="generate-provider" depends="validate,init">    
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+
+    <java classname="edu.vu.isis.ammo.generator.AmmoGenerator"
+                      failonerror="true">
+      <arg value="template=content-provider-schema" />
+      <arg value="skeleton=false" />
+      <arg value="mkdir=true" />
+      <arg value="schema=false" />
+      <arg value="provider=true" />
+      <arg value="contract=${ammogen.template.dir}/${ammogen.contract.file}" />
+      <arg value="output=${ammogen.output.dir}" />
+      <classpath refid="maven.runtime.classpath" />
+    </java>
+  </target>
+
+  <target name="generate-provider-skeleton" depends="validate,init">    
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+
+    <java classname="edu.vu.isis.ammo.generator.AmmoGenerator"
+                      failonerror="true">
+      <arg value="template=content-provider-schema" />
+      <arg value="skeleton=true" />
+      <arg value="mkdir=true" />
+      <arg value="schema=false" />
+      <arg value="provider=true" />
+      <arg value="contract=${ammogen.template.dir}/${ammogen.contract.file}" />
+      <arg value="output=${ammogen.output.dir}" />
+      <arg value="suffix=.java.skel" />
+      <classpath refid="maven.runtime.classpath" />
+    </java>
+  </target>
+
+  <target name="generate-custom-provider" depends="validate,init">    
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+
+    <java classname="edu.vu.isis.ammo.generator.AmmoGenerator"
+                      failonerror="true">
+      <arg value="template=content-provider-schema" />
+      <arg value="skeleton=false" />
+      <arg value="mkdir=true" />
+      <arg value="schema=false" />
+      <arg value="provider=true" />
+      <arg value="template=${ammogen.template.dir}/${ammogen.template.file}" />
+      <arg value="contract=${ammogen.template.dir}/${ammogen.contract.file}" />
+      <arg value="output=${ammogen.output.dir}" />
+      <classpath refid="maven.runtime.classpath" />
+    </java>
+  </target>
+
+  <target name="generate-schema" depends="validate,init">    
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+
+    <java classname="edu.vu.isis.ammo.generator.AmmoGenerator"
+                      failonerror="true">
+      <arg value="template=content-provider-schema" />
+      <arg value="skeleton=false" />
+      <arg value="mkdir=true" />
+      <arg value="schema=true" />
+      <arg value="provider=false" />
+      <arg value="contract=${ammogen.template.dir}/${ammogen.contract.file}" />
+      <arg value="output=${ammogen.output.dir}" />
+      <classpath refid="maven.runtime.classpath" />
+    </java>
+  </target>
+
+  <target name="generate-schema-skeleton" depends="validate,init">    
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+
+    <java classname="edu.vu.isis.ammo.generator.AmmoGenerator"
+                      failonerror="true">
+      <arg value="template=content-provider-schema" />
+      <arg value="skeleton=true" />
+      <arg value="mkdir=true" />
+      <arg value="schema=true" />
+      <arg value="provider=false" />
+      <arg value="contract=${ammogen.template.dir}/${ammogen.contract.file}" />
+      <arg value="output=${ammogen.output.dir}" />
+      <arg value="suffix=.java.skel" />
+      <classpath refid="maven.runtime.classpath" />
+    </java>
+  </target>
+
+
+  <target name="generate-custom-schema" depends="validate,init">    
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+
+    <java classname="edu.vu.isis.ammo.generator.AmmoGenerator"
+                      failonerror="true">
+      <arg value="template=content-provider-schema" />
+      <arg value="skeleton=false" />
+      <arg value="mkdir=true" />
+      <arg value="schema=true" />
+      <arg value="provider=false" />
+      <arg value="template=${ammogen.template.dir}/${ammogen.template.file}" />
+      <arg value="contract=${ammogen.template.dir}/${ammogen.contract.file}" />
+      <arg value="output=${ammogen.output.dir}" />
+      <classpath refid="maven.runtime.classpath" />
+    </java>
+  </target>
+</project>

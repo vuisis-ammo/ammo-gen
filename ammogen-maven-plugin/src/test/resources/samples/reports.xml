@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="AMMOReport">
+
+  <sponsor name="edu.vu.isis.ammo.report" />
+
+  <relation name="report base">
+     <description>
+       Use to send information to provide timely intelligence or status regarding events that could have an immediate and significant effect on current planning and operations. Reference: FM 17-15, FM 17-98, and FM 7-7.
+     </description>
+     <field type="TEXT" name="content guid" default=""> </field>
+     <field type="TIMESTAMP" name="report time" default="0"> </field>
+     <field type="TEXT" name="reporting unit" default=""> </field>
+     <field type="INTEGER" name="size" default="0"> </field>
+     <field type="TEXT" name="activity" default=""> </field>
+     <field type="TEXT" name="location utm" default=""> </field>
+     <field type="TEXT" name="enemy unit" default=""> </field>
+     <field type="TIMESTAMP" name="observation time " default="0"> </field>
+     <field type="TEXT" name="equipment" default=""> </field>
+     <field type="TEXT" name="assessment" default=""> </field>
+     <field type="TEXT" name="narrative" default=""> </field>
+     <field type="TEXT" name="authentication" default=""> </field>
+  </relation>
+</content-provider>

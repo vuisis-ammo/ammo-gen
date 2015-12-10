@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="sms">
+
+  <description>
+    A dummy content provider which receives messages from the
+    distributor and generates intents to the SmsBroadcastReceiver.
+  </description>
+
+  <sponsor name="edu.vu.isis.ammo.sms" />
+
+  <relation name="message">
+     <description>
+       An sms message.
+     </description>
+     <field type="TEXT" name="sms_uri" default="unknown">
+       <description> URI of the original SMS Message.  </description>
+     </field>
+     <field type="TEXT" name="sender" default="" null="no">
+       <description>
+        Who the message is from.
+       </description>
+     </field>
+     <field type="TEXT" name="recipient" default="" null="no">
+       <description>
+        Who the message is to.
+       </description>
+     </field>
+     <field type="LONG" name="thread" default="0" null="no">
+       <description>
+        The message thread id of a conversation
+       </description>
+     </field>
+     <field type="TEXT" name="payload" default="" null="no">
+       <description>
+        The content of the message.
+       </description>
+     </field>
+      <field type="TIMESTAMP" name="created date" default="now">
+     </field>
+     <field type="TIMESTAMP" name="modified date" default="now" sort="1">
+     </field>
+     
+     <field type="TEXT" name="msg type" default="normal" null="no">
+       <description>
+        The type of the message, normal communication or receipt acknowledgment.
+       </description>
+     </field>
+
+     <key>
+        <ref field="sender"/>
+	<ref field="recipient"/>
+	<ref field="created date"/>
+     </key>
+  </relation>
+
+</content-provider>

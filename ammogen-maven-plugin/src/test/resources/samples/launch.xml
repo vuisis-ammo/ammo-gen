@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="launch">
+
+  <description>
+    The launch provider includes a reimplementation of the contact list.
+    Contacts are the main object for the launched activities the operator being the subject.
+    Consider the SVO sentence (subject-verb-object) reinterpreted as operator-action-contact.
+  </description>
+
+  <sponsor name="edu.vu.isis.ammo.launch" />
+
+  <relation name="contact">
+     <description>
+       The objective of the sentence.
+       This closely follows the stock android contact table.
+     </description>
+     <field type="GUID" name="lookup key" default="" null="no">
+       <description>
+        A globally unique identifier for the contact.
+       </description>
+     </field>
+     <field type="TEXT" name="display name" default="" null="allowed">
+       <description>
+        The default textual name of the contact.
+       </description>
+     </field>
+     <field type="TEXT" name="call sign" default="" null="no">
+       <description>
+        An alias for the war fighter.
+        e.g. Hawk4
+       </description>
+     </field>
+     <field type="TEXT" name="user id" default="" null="no">
+       <description>
+        An alias for the war fighter.
+        e.g. Hawk4
+       </description>
+     </field>
+     <field type="FK" name="visual id" default="-1" ref="data" null="allowed">
+       <description>
+        Into the data table to the contacts photograph. Null allowed.
+       </description>
+     </field>
+     <field type="FK" name="audio id" default="-1" ref="data" null="allowed">
+       <description>
+        Into the data table to the contacts audio identifier. Null allowed.
+       </description>
+     </field>
+     <field type="FK" name="tactile id" default="-1" ref="data" null="allowed">
+       <description>
+        Into the data table to the contacts tactile/vibration identifier. Null allowed.
+       </description>
+     </field>
+     <field type="INTEGER" name="times contacted" default="0" null="no">
+       <description>
+        How many times the contact has been accessed.
+       </description>
+     </field>
+     <field type="TIMESTAMP" name="last contact" default="now" null="no">
+       <description>
+        The last time contacted.
+       </description>
+     </field>
+     <field type="TIMESTAMP" name="initial contact" default="now" null="no">
+       <description>
+        The first contact included in the times contacted count.
+       </description>
+     </field>
+     <field type="INCLUSIVE" name="presence" default="ALL" null="no">
+       <description>
+        Indicates whether the contact is presently reachable (best guess).
+        This is related to suppression.
+       </description>
+        <enum key="ALL" value="0"/>
+        <enum key="AUDIO" value="1"/>
+        <enum key="VIDEO" value="2"/>
+        <enum key="TACTILE" value="3"/>
+     </field>
+     <field type="INCLUSIVE" name="suppress" default="ALL" null="no">
+       <description>
+        Indicates whether the subject is reachable by the contact.
+        This is related to suppression.
+       </description>
+        <enum key="ALL" value="0"/>
+        <enum key="AUDIO" value="1"/>
+     </field>
+     <field type="EXCLUSIVE" name="starred" default="NONE" null="no">
+       <description>
+        What is the primary relationship with this contact?
+       </description>
+        <enum key="NONE" value="0"/>
+        <enum key="FAVORITE" value="1"/>
+        <enum key="FRIEND" value="2"/>
+        <enum key="TEAM" value="3"/>
+        <enum key="SUPERIOR" value="4"/>
+        <enum key="SUBORDINATE" value="5"/>
+     </field>
+  </relation>
+
+  <relation name="raw contact">
+     <description>
+Each raw contact represents contact information from a particular source.
+Contacts can be any entity.
+     </description>
+
+     <field type="FK" name="contact id" default="-1" ref="contact" null="no">
+       <description>
+        Each raw contact must have a corresponding contact.
+The ID of the row in the contacts table to which this raw contact belongs.
+Raw contacts are linked to contacts by the aggregation process, which can be 
+controlled by the AGGREGATION_MODE field and AggregationExceptions.
+       </description>
+     </field>
+
+     <field alias="aggr mod" type="EXCLUSIVE" name="aggregation mode" default="DEFAULT" null="no">
+       <description>
+A mechanism that allows programmatic control of the aggregation process.
+See also AggregationExceptions.
+       </description>
+        <enum key="DEFAULT" value="0"/>
+        <enum key="DISABLED" value="1"/>
+        <enum key="SUSPENDED" value="2"/>
+     </field>
+
+     <field type="EXCLUSIVE" name="node type" null="no" default="PERSON" >
+       <description>
+A mechanism that allows programmatic control of the aggregation process.
+See also AggregationExceptions.
+       </description>
+        <enum key="PERSON" value="0"/>
+        <enum key="GROUP" value="1"/>
+        <enum key="ORG" value="2"/>
+        <enum key="ROLE" value="3"/>
+     </field>
+
+     <field type="TEXT" name="account name" default="" access="wo" null="no">
+       <description>
+The name of the account instance to which this row belongs, 
+which when paired with ACCOUNT_TYPE identifies a specific account. 
+For example, this will be the Gmail address if it is a Google account. 
+It should be set at the time the raw contact is inserted and never changed afterwards.
+       </description>
+     </field>
+
+     <field type="TEXT" name="account type" default="" access="wo" null="no">
+       <description>
+The type of account to which this row belongs, which when paired with 
+ACCOUNT_NAME identifies a specific account. 
+It is set at the time the raw contact is inserted and never changed afterwards.
+
+To ensure uniqueness, new account types are chosen according to the Java package naming convention. 
+Thus a Google account is of type "com.google".
+       </description>
+     </field>
+
+     <field type="TEXT" name="account source id" default="" null="no">
+       <description>
+String that uniquely identifies this row to its source account.
+Typically it is set at the time the raw contact is inserted and never changed afterwards.
+The one notable exception is a new raw contact:
+it will have an account name and type, but no source id.
+This indicates to the sync adapter that a new contact needs to be 
+created server-side and its ID stored in the corresponding SOURCE_ID field on the phone.
+       </description>
+     </field>
+
+     <field type="TEXT" name="display name" default="" null="allowed">
+       <description>
+        The default textual name of the contact.
+       </description>
+     </field>
+     <field type="TEXT" name="call sign" default="" null="no">
+       <description>
+        An alias for the war fighter.
+        e.g. Hawk4
+       </description>
+     </field>
+     <field type="FK" name="rank id" default="-1" ref="data" null="allowed">
+       <description>
+        Into the data table to the contact's rank icon. Null allowed.
+        The contact may have additional items in the data table but this is their primary rank.
+       </description>
+     </field>
+     <field type="FK" name="visual id" default="-1" ref="data" null="allowed">
+       <description>
+        Into the data table to the contact's photograph. Null allowed.
+        The contact may have additional items in the data table but this is their primary image identifier.
+       </description>
+     </field>
+     <field type="FK" name="audio id" default="-1" ref="data" null="allowed">
+       <description>
+        Into the data table to the contact's audio identifier. Null allowed.
+        The contact may have additional items in the data table but this is their primary audible identifier.
+       </description>
+     </field>
+     <field type="FK" name="tactile id" default="-1" ref="data" null="allowed">
+       <description>
+        Into the data table to the contact's tactile/vibration identifier. Null allowed.
+        The contact may have additional items in the data table but this is their primary tactile identifier.
+       </description>
+     </field>
+     <field type="INTEGER" name="times contacted" default="0" null="no">
+       <description>
+        How many times the contact has been accessed.
+       </description>
+     </field>
+     <field type="TIMESTAMP" name="last contact" default="now" null="no">
+       <description>
+        The last time contacted.
+       </description>
+     </field>
+     <field type="TIMESTAMP" name="initial contact" default="now" null="no">
+       <description>
+        The first contact included in the times contacted count.
+       </description>
+     </field>
+
+     <field type="TEXT" name="notes" default="" null="allowed">
+       <description>
+Miscellaneous notes about the contact.
+       </description>
+     </field>
+
+  </relation>
+
+  <relation name="data">
+     <description>
+Constants for the data table, which contains data points tied to a raw contact.
+Each row of the data table is typically used to store a single piece of contact
+information (such as a phone number) and its associated metadata (such as whether it is a work or home number).
+     </description>
+
+     <field type="FK" name="raw contact id" default="-1" ref="raw contact" null="no">
+       <description>
+The id of the row in the RawContacts table to which this data belongs.
+       </description>
+     </field>
+
+     <field type="EXCLUSIVE" name="primacy" default="NONE" >
+       <description>
+PRIMARY : Whether this is the primary entry of its kind for the raw contact to which it belongs.
+SUPER : Whether this is the primary entry of its kind for the aggregate contact to which it belongs.
+Any data record that is "SUPER primary" must also be "PRIMARY".
+For example, the super-primary entry may be interpreted as the default contact
+value of its kind (for example, the default phone number to use for the contact).
+       </description>
+        <enum key="NONE" value="0"/>
+        <enum key="PRIMARY" value="1"/>
+        <enum key="SUPER" value="2"/>
+        <enum key="EXTRA" value="2"/>
+     </field>
+
+     <field type="FK" name="mime" default="-1" ref="mime type" access="wo">
+       <description>
+The MIME type of the item represented by this row.
+The mime type is used to detemine the actions which can be performed with or on the contact.
+       </description>
+     </field>
+
+     <field type="BOOL" name="visibility" access="rw" default="false">
+       <description>
+Indicates whether this contact is visible in a user interface.
+       </description>
+     </field>
+
+     <field alias="d1" type="TEXT" default="" name="data key" access="rw">
+       <description>
+Generic data columns.
+The meaning of each column is determined by the MIME TYPE. 
+By convention...
+ DATA KEY is used for the candidate key as it is indexed
+ BLOB is used for storing BLOBs (binary data).
+Data columns whose meaning is not explicitly defined for a given MIMETYPE should not be used. 
+
+If additional data is required the primacy field indicates extra data with the same primacy. 
+In that case the mime type and data key provide the keys to the group.
+       </description>
+     </field>
+     <field alias="d2" type="TEXT" name="data 2" access="rw"/>
+     <field alias="d3" type="TEXT" name="data 3" access="rw"/>
+     <field alias="d4" type="TEXT" name="data 4" access="rw"/>
+     <field alias="blob" type="BLOB" name="blob" access="rw"/>
+
+  </relation>
+
+  <relation name="data extra">
+     <description>
+In general the data fields in the data table are sufficient but in some rare
+cases additional data may be required.
+     </description>
+     <field type="FK" name="parent" default="-1" ref="data" access="wo">
+       <description>
+         A reference back to the head record which this record extends
+       </description>
+     </field>
+     <field type="INTEGER" name="ordinal" default="-1" ref="data" access="wo">
+       <description>
+         If more than one extension is required this provides an ordinal.
+       </description>
+     </field>
+
+     <field alias="d1" type="TEXT" name="extra 1" access="rw"/>
+     <field alias="d2" type="TEXT" name="extra 2" access="rw"/>
+     <field alias="d3" type="TEXT" name="extra 3" access="rw"/>
+     <field alias="blob" type="BLOB" name="blob" access="rw"/>
+  </relation>
+
+  <relation name="group membership">
+     <description>
+Groups of contacts to be treated as a single actionable object.
+This could be implemented as part of the data table.
+But it is a general concept which transends such things as phones and email
+and thus gets its own table.
+     </description>
+
+     <field type="FK" name="group id" default="-1" ref="raw contact" null="no">
+       <description>
+The id of the row in the Group table.
+       </description>
+     </field>
+
+     <field type="FK" name="member id" default="-1" ref="raw contact" null="no">
+       <description>
+The id of the row in the RawContacts table indicating its membership in the group.
+       </description>
+     </field>
+
+     <field type="EXCLUSIVE" name="role" null="no" default="MEMBER">
+       <description>
+Indicates the role played by the member of the group.
+       </description>
+        <enum key="MEMBER" value="0"/>
+        <enum key="LEADER" value="1"/>
+        <enum key="OWNER" value="2"/>
+     </field>
+
+  </relation>
+
+  <relation name="mime type">
+     <description>
+The MIME type of a contact's data item.
+A mime type may have multiple actions or an action may require multiple mime types.
+     </description>
+
+     <field type="TEXT" name="name" default="" null="no">
+       <description>
+Some typical mime types are...
+* StructuredName.CONTENT_ITEM_TYPE
+* Phone.CONTENT_ITEM_TYPE
+* Email.CONTENT_ITEM_TYPE
+* Photo.CONTENT_ITEM_TYPE
+* Organization.CONTENT_ITEM_TYPE
+* Im.CONTENT_ITEM_TYPE
+* Nickname.CONTENT_ITEM_TYPE
+* Note.CONTENT_ITEM_TYPE
+* StructuredPostal.CONTENT_ITEM_TYPE
+* Website.CONTENT_ITEM_TYPE
+* Event.CONTENT_ITEM_TYPE
+* Relation.CONTENT_ITEM_TYPE
+* SipAddress.CONTENT_ITEM_TYPE
+       </description>
+     </field>
+  </relation>
+
+  <relation name="mime field">
+     <description>
+A description of the MIME type of a contact's data item.
+This allows for dynamic mime definitions.
+     </description>
+
+     <field type="TEXT" name="var" default="" null="no">
+       <description>
+The name of the mime field. Presented to the operator to be filled out.
+       </description>
+     </field>
+     <field type="TEXT" name="dim" default="">
+       <description>
+The dimension (and unit) of the mime field.
+       </description>
+     </field>
+     <field type="TEXT" name="table" default="">
+       <description>
+The name of the table containing the mime field.
+       </description>
+     </field>
+     <field type="TEXT" name="ordinal" default="">
+       <description>
+The ordinal of the row in the table containing the mime field.
+       </description>
+     </field>
+     <field type="TEXT" name="col" default="">
+       <description>
+The name of the column table containing the mime field.
+       </description>
+     </field>
+  </relation>
+
+  <relation name="action">
+     <description>
+An action is associated with an intent which is used to start an activity.
+A mime type may have multiple actions or an action may require multiple mime types.
+In general an action has one and only one mime type.
+If it has more than one then the action assoc table is used.
+
+For example the phone number mime type is used by both the dialer and sms actions.
+     </description>
+
+     <field type="TEXT" name="name" default="" null="no">
+       <description>
+What the action 
+       </description>
+     </field>
+
+     <field type="TEXT" name="intent" default="" null="no">
+       <description>
+The name of the intent used to start an activity for this contact.
+       </description>
+     </field>
+
+     <field type="BLOB" name="icon" default="">
+       <description>
+An icon representing the action to be taken.
+       </description>
+     </field>
+
+     <field type="FK" name="mime" default="-1" null="no">
+       <description>
+A mime type required to fulfill this action.
+       </description>
+     </field>
+  </relation>
+
+  <relation name="action extra">
+     <description>
+Provides additional trailer information to the action table.
+     </description>
+
+     <field type="FK" name="parent" default="-1" ref="action" access="wo">
+       <description>
+         A reference back to the head record which this record extends
+       </description>
+     </field>
+
+     <field type="INTEGER" name="ordinal" default="-1" access="wo">
+       <description>
+         If more than one set is required this provides an ordinal.
+       </description>
+     </field>
+
+     <field type="FK" name="mime" default="-1" null="no" access="wo">
+       <description>
+A extra mime type required to fulfill this action.
+       </description>
+     </field>
+  </relation>
+
+ <usage name="general">
+   <description>
+Bring up the contact list which shows all contacts (or some filtered subset such as phonable).
+Select the contact with whom you wish to communicate. 
+There are two choices for selecting communication target.
+One way is to show only the (actionable) available actions.
+These are those actions for which the mime data is sufficient to allow the action.
+The second way presents the mime data.
+In this second mode either the mime data is present for an action, making the action doable, or
+the mime data is insufficient and must be provided by the operator.
+
+When an action is loaded it generates an intent which is picked up by a receiver which
+updates the action table with the requisite mime types.
+   </description>
+ </usage>
+
+ <usage name="phone call">
+   <description>
+Bring up the contact list which shows all contacts (or some filtered subset such as phonable).
+Select the contact with whom you wish to communicate. 
+There are two choices for selecting communication target.
+One way is to show only the (actionable) available actions.
+These are those actions for which the mime data is sufficient to allow the action.
+The second way presents the mime data.
+In this second mode either the mime data is present for an action, making the action doable, or
+the mime data is insufficient and must be provided by the operator.
+
+When an action is loaded it generates an intent which is picked up by a receiver which
+updates the action table with the requisite mime types.
+   </description>
+ </usage>
+
+</content-provider>

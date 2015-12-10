@@ -1,0 +1,45 @@
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+package ammo.gateway.serialization;
+
+message IncidentMedia {
+  optional string event_id = 1[default = "<field.default>"];
+  optional string data = 2[default = "<field.default>"];
+  optional int32 created_date = 3[default = -1];
+  optional int32 modified_date = 4[default = -1];
+}
+
+message IncidentEvent {
+  optional string uuid = 1[default = "<field.default>"];
+  optional int32 media_count = 2[default = <field.default>];
+  optional string originator = 3[default = "<field.default>"];
+  optional string display_name = 4[default = "<field.default>"];
+  optional string category_id = 5[default = "<field.default>"];
+  optional string title = 6[default = "<field.default>"];
+  optional string description = 7[default = "<field.default>"];
+  optional double longitude = 8[default = <field.default>];
+  optional double latitude = 9[default = <field.default>];
+  optional int32 created_date = 10[default = -1];
+  optional int32 modified_date = 11[default = -1];
+  optional string cid = 12[default = "<field.default>"];
+  optional string category = 13[default = "<field.default>"];
+  optional string unit = 14[default = "<field.default>"];
+  optional int32 size = 15[default = <field.default>];
+  optional string dest_group_type = 16[default = "<field.default>"];
+  optional string dest_group_name = 17[default = "<field.default>"];
+  optional int32 status = 18[default = <field.default>];
+}
+
+message IncidentStatus {
+  optional string event_uuid = 1[default = "<field.default>"];
+  optional string status = 2[default = "<field.default>"];
+  optional string actor = 3[default = "<field.default>"];
+  optional int32 modified_date = 4[default = -1];
+}
+
+message IncidentCategory {
+  optional string main_category = 1[default = "<field.default>"];
+  optional string sub_category = 2[default = "<field.default>"];
+  optional string tigr_id = 3[default = "<field.default>"];
+  optional string icon = 4[default = "<field.default>"];
+}

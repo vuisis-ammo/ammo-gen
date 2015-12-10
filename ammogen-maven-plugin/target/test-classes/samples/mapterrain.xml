@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="map terrain">
+
+  <sponsor name="edu.vu.isis.ammo.battlespace" />
+
+  <relation name="tile">
+     <field type="INTEGER" name="level" default="1">
+     </field>
+     <field type="TEXT" name="two dim id" default="">
+     </field>
+     <field type="REAL" name="north" default="0.0">
+     </field>
+     <field type="REAL" name="south" default="0.0">
+     </field>
+     <field type="REAL" name="east" default="0.0">
+     </field>
+     <field type="REAL" name="west" default="0.0">
+     </field>
+     <field type="TEXT" name="zip" default="temp.zip">
+     </field>
+     <field type="TEXT" name="file" default="temp.png">
+     </field>
+  </relation>
+
+</content-provider>

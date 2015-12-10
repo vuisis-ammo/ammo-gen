@@ -1,0 +1,22 @@
+// THIS IS GENERATED CODE. ANY CHANGES MADE TO THIS FILE BY HAND
+// WILL BE LOST.
+
+project(LibIncidentSerialization) : acelib, protobuf, gatewaycommon {
+  after += LibJSON
+  libs += json
+  includes += $(GATEWAY_ROOT)/LibJSON
+  sharedname = IncidentSerialization
+
+  specific(prop:windows) {
+    macros += INCIDENT_DLL_BUILD
+  }
+
+  Protobuf_Files {
+    Incident.proto
+  }
+
+  Source_Files {
+    IncidentSerialization.cpp
+    Incident.pb.cc
+  }
+}

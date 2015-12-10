@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="video stream">
+
+	<description>
+	Message for one way video streaming in AmmoVideoStream
+	</description>
+	
+	<sponsor name="edu.vu.isis.ammo.videostream" />
+	
+	<relation name="frame">
+     <description>
+       A message containing data for a video segment
+     </description>
+     
+     <field type="BLOB" name="image" default="" null="no">
+       <description>
+        Data blob containing the jpg image for this frame
+       </description>
+     </field>
+     
+     <field type="LONG" name="width" default="0" null="no">
+		 <description>
+			Width of the image
+		 </description>
+     </field>
+     
+	  <field type="LONG" name="height" default="0" null="no">
+		 <description>
+			Height of the image
+		 </description>
+     </field>
+     
+     
+     <field type="TIMESTAMP" name="timestamp" default="0" null="no">
+		<description>
+			Timestamp of the sender. Whether they match on the receiver is irrelevant since they will be used to order the images.
+		</description>
+     </field>
+     
+     
+    </relation>
+    
+    <relation name="textmsg">
+    <description>
+    A message for sending text messages between users.
+    </description>
+    
+    <field type="TEXT" name="sender" default="default sender" null="no">
+    <description>
+    Sender of the message
+    </description>
+    </field>
+    
+    <field type="TEXT" name="receiver" default="default receiver" null="no">
+    <description>
+    Receiver of the message
+    </description>
+    </field>
+    
+    <field type="TEXT" name="timestamp" default="0" null="no">
+    <description>
+    Timestamp of the message
+    </description>
+    </field>
+    
+    <field type="TEXT" name="message" default="default message" null="no">
+    <description>
+    The actual message
+    </description>
+    </field>
+    </relation>
+    
+    <relation name="invitation">
+    	<description>
+    		The invitation table stores all invitations received from 
+    		AmmoCore.
+    	</description>
+    	<field type="TIMESTAMP" name="created date" default="now"></field>
+    	<field type="TIMESTAMP" name="modified date" default="now"></field>
+    	<field type="TEXT" name="sender" default="">
+    		<description>
+    			Operator ID of the sender.
+    		</description>
+    	</field>
+    	<field type="TEXT" name="receiver" default="">
+    		<description>
+    			Operator ID of the receiver.
+    		</description>
+    	</field>
+    	<field type="TEXT" name="sender ip" default="">
+    		<description>
+    			IP address of the sender. This is used by the receiver
+    			to establish a connection.
+    		</description>
+    	</field>
+    	<field type="TEXT" name="priority" default="normal"></field>
+    	<field type="TEXT" name="description" default=""></field>
+    </relation>
+    
+</content-provider>

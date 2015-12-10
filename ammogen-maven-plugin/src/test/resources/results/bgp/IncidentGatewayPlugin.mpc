@@ -1,0 +1,25 @@
+// THIS IS GENERATED CODE. IF YOU COPY THIS FILE, YOU MUST DELETE
+// THE ORIGINAL, MOVE IT OUT OF THE 'GATEWAY' SUBTREE, OR CHANGE
+// THE PROJECT NAME IN THE COPY. MPC DOES NOT ALLOW DUPLICATE
+// PROJECT NAMES IN THE SAME BUILD TREE, AND WILL SKIP THE FILE.
+
+project(IncidentGatewayPlugin) : aceexe, protobuf, gatewaycommon, gatewaydatastore {
+  after += LibGatewayConnector LibJSON LibGatewayDataStore
+  includes += $(GATEWAY_ROOT)/LibJSON $(GATEWAY_ROOT)/LibGatewayDataStore
+  libs += sqlite3 gatewaydatastore
+  exename = IncidentGatewayPlugin
+
+  // Paths to SQLite lib for 32- and 64-bit machines.
+  specific(prop:make) {
+    libpaths += /usr/lib/i386-linux-gnu \
+                /usr/lib/x86_64-linux-gnu
+  }
+
+  Source_Files {
+    IncidentConfigManager.cpp
+    IncidentPushHandler.cpp
+    IncidentQueryHandler.cpp
+    IncidentReceiver.cpp
+    main.cpp
+  }
+}

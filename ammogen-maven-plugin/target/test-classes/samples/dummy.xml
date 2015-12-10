@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="dummy">
+
+  <sponsor name="edu.vu.isis.ammo.exercise" />
+
+  <relation name="first">
+     <description>
+        A dummy relation for testing.
+     </description>
+
+     <field type="TEXT" name="id" default="">
+       <description>
+        Some arbitrary text identifier.
+       </description>
+     </field>
+     <field type="FILE" name="data" default="">
+       <description>
+        The file where the binary data is stored.
+       </description>
+     </field>
+     <field type="TIMESTAMP" name="created date" default="now">
+       <description>
+        The date when the content was added
+       </description>
+     </field>
+     <field type="TIMESTAMP" name="modified date" default="now" sort="1">
+       <description>
+        The date when the content was modified
+       </description>
+     </field>
+  </relation>
+
+  <relation name="second">
+     <description>
+       Each incident will have a single event.
+     </description>
+     <field type="TEXT" name="data" default="">
+        <description>
+          Some sample data.
+        </description>
+     </field>
+  </relation>
+
+</content-provider>

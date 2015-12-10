@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="distributor">
+  <sponsor name="edu.vu.isis.ammo.core"/>
+
+  <relation name="postal">
+    <description>
+     To be used for post requests.
+     Each entry corresponds to a request for sending a specific tuple from a content provider.
+     So, once the pull request has been SATISFIED, these tuples are susceptible to garbage collection.
+     </description>
+    <field type="TEXT" name="cp type" default="unknown">
+      <description>
+       This is used for post requests.
+       This along with the cost is used to decide how to deliver the specific object. 
+     </description>
+    </field>
+    <field type="TEXT" name="uri" default="unknown">
+      <description> URI of the data to be distributed.  </description>
+    </field>
+    <field type="BLOB" name="notice" default="">
+      <description>
+        A description of what is to be done when various state-transistions occur.
+      </description>
+    </field>
+    <field type="INTEGER" name="priority" default="0"> 
+      <description>
+        What order should this message be sent.
+        Negative priorities indicated less than normal.
+       </description>
+    </field>
+    <field type="EXCLUSIVE" name="serialize type" default="INDIRECT">
+      <description>
+          Indicates if the uri indicates a table or whether the data has been preserialized.
+          DIRECT : the serialized data is found in the data field (or a suitable file).
+          INDIRECT : the serialized data is obtained from the named uri.
+          DEFERRED : the same as INDIRECT but the serialization doesn't happen until the data is sent.
+      </description>
+      <enum key="DIRECT" value="1"/>
+      <enum key="INDIRECT" value="2"/>
+      <enum key="DEFERRED" value="3"/>
+    </field>
+    <field type="EXCLUSIVE" name="disposition" default="PENDING">
+      <description> Status of the entry (sent or not sent).  </description>
+      <enum value="1" key="PENDING" />
+      <enum value="2" key="QUEUED" />
+      <enum value="3" key="SENT" />
+      <enum value="4" key="JOURNAL" />
+      <enum value="5" key="FAIL" />
+      <enum value="6" key="EXPIRED" />
+      <enum value="7" key="SATISFIED" />
+    </field>
+    <field type="TIMESTAMP" name="expiration" default="now">
+      <description> Timestamp at which point entry becomes stale.  </description>
+    </field>
+    <field type="TEXT" name="unit" default="unknown">
+      <description> Units associated with {@link #VALUE}. Used to determine whether should occur.  </description>
+    </field>
+    <field type="INTEGER" name="value" default="-1">
+      <description>
+       Arbitrary value linked to importance that entry is 
+       transmitted and battery drain.
+     </description>
+    </field>
+    <field type="TEXT" name="data" default="">
+      <description>
+        If the If null then the data file corresponding to the column name and record id should be used.
+        This is done when the data size is larger than that allowed for a field contents.  
+       </description>
+    </field>
+    <field type="TIMESTAMP" name="created date" default="now"> </field>
+    <field type="TIMESTAMP" name="modified date" default="now" sort="1"> </field>
+  </relation>
+
+  <relation name="retrieval">
+    <description>
+     To be used for pull requests.
+     Each entry corresponds to a request for information from some data store.
+     In general the information is only pulled once.
+     So, once the pull request has been SATISFIED, these tuples are susceptible to garbage collection.
+     </description>
+    <field type="EXCLUSIVE" name="disposition" default="PENDING">
+      <description> Status of the entry (sent or not sent).  </description>
+      <enum value="1" key="PENDING" />
+      <enum value="2" key="QUEUED" />
+      <enum value="3" key="SENT" />
+      <enum value="4" key="JOURNAL" />
+      <enum value="5" key="FAIL" />
+      <enum value="6" key="EXPIRED" />
+      <enum value="7" key="SATISFIED" />
+    </field>
+    <field type="BLOB" name="notice" default="">
+      <description>
+        A description of what is to be done when various state-transistions occur.
+      </description>
+    </field>
+    <field type="INTEGER" name="priority" default="0"> 
+      <description>
+        What order should this message be sent.
+        Negative priorities indicated less than normal.
+       </description>
+    </field>
+    <field type="TEXT" name="uri" default="unknown">
+      <description> URI target for the data to be pulled.  </description>
+    </field>
+    <field type="TEXT" name="mime" default="unknown">
+      <description> mime type of the data to be pulled.  </description>
+    </field>
+    <field type="TEXT" name="projection" default="">
+      <description> The fields/columns wanted.  </description>
+    </field>
+    <field type="TEXT" name="selection" default="">
+      <description> The rows/tuples wanted.  </description>
+    </field>
+    <field type="TEXT" name="args" default="">
+      <description> The values using in the selection.  </description>
+    </field>
+    <field type="TEXT" name="ordering" default="">
+      <description> The order the values are to be returned in.  </description>
+    </field>
+    <field type="EXCLUSIVE" name="continuity" default="ONCE">
+      <description>
+        Continuity indicates whether this is a...
+          - one time rerieval or
+          - should continue for some period of time
+          - should be limited to a specific quantity of elements 
+     </description>
+      <enum key="ONCE" value="1"/>
+      <enum key="TEMPORAL" value="2"/>
+      <enum key="QUANTITY" value="3"/>
+    </field>
+    <field type="INTEGER" name="continuity_value" default="ONCE">
+      <description>
+          The meaning changes based on the continuity type.
+          - ONCE : undefined
+          - TEMPORAL : chronic  
+          - QUANTITY : the maximum number of objects to return
+      </description>
+    </field>
+    <field type="TIMESTAMP" name="expiration" default="now">
+      <description>
+        Timestamp at which point entry becomes stale.
+        This is different than a temporal continuity. (I believe?)
+     </description>
+    </field>
+    <field type="TIMESTAMP" name="created date" default="now">
+     </field>
+    <field type="TIMESTAMP" name="modified date" default="now" sort="1">
+     </field>
+  </relation>
+  <relation name="publication">
+    <description>
+     To be used for publish requests.
+     Each time an element is added to a content provider 
+     it is automatically scheduled for distribution.
+     No additional call to the ammo distributor is required.
+     </description>
+    <field type="EXCLUSIVE" name="disposition" default="PENDING">
+      <description> Status of the entry (sent or not sent).  </description>
+      <enum value="1" key="PENDING" />
+      <enum value="2" key="QUEUED" />
+      <enum value="3" key="SENT" />
+      <enum value="4" key="JOURNAL" />
+      <enum value="5" key="FAIL" />
+      <enum value="6" key="EXPIRED" />
+    </field>
+    <field type="TEXT" name="uri" default="unknown">
+      <description> URI target for the data to be pulled.  </description>
+    </field>
+    <field type="TEXT" name="mime" default="unknown">
+      <description> mime type of the data to be pulled.  </description>
+    </field>
+    <field type="TIMESTAMP" name="expiration" default="now">
+      <description> Timestamp at which point entry becomes stale.  </description>
+    </field>
+    <field type="TIMESTAMP" name="created date" default="now">
+     </field>
+    <field type="TIMESTAMP" name="modified date" default="now" sort="1">
+     </field>
+  </relation>
+  <relation name="subscription">
+    <description>
+     A subscription is for a topic which coresponds to a table in a content provider.
+     </description>
+    <field type="EXCLUSIVE" name="disposition" default="PENDING">
+      <enum value="1" key="PENDING" />
+      <enum value="2" key="QUEUED" />
+      <enum value="3" key="SENT" />
+      <enum value="4" key="JOURNAL" />
+      <enum value="5" key="FAIL" />
+      <enum value="6" key="EXPIRED" />
+      <description> Status of the entry (sent or not sent). </description>
+    </field>
+    <field type="TEXT" name="uri" default="unknown">
+      <description> URI target for the data to be pulled.  </description>
+    </field>
+    <field type="TEXT" name="mime" default="unknown">
+      <description> mime type of the data to be pulled.  </description>
+    </field>
+    <field type="TEXT" name="selection" default="">
+      <description> The rows/tuples wanted.  </description>
+    </field>
+    <field type="TIMESTAMP" name="expiration" default="now">
+      <description> Timestamp at which point entry becomes stale.  </description>
+    </field>
+    <field type="BLOB" name="notice" default="">
+      <description>
+        A description of what is to be done when various state-transistions occur.
+      </description>
+    </field>
+    <field type="INTEGER" name="priority" default="0"> 
+      <description>
+        What order should this message be sent.
+        Negative priorities indicated less than normal.
+       </description>
+    </field>
+    <field type="TIMESTAMP" name="created date" default="now"> </field>
+    <field type="TIMESTAMP" name="modified date" default="now" sort="1"> </field>
+  </relation>
+</content-provider>

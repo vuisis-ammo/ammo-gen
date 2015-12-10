@@ -1,0 +1,13 @@
+// THIS IS GENERATED CODE. A COPY IS ALSO PLACED IN
+// $GATEWAY_ROOT/build/etc. TO EDIT AND AVOID OVERWRITING UPON
+// REGENERATION, EDIT THIS FILE, THEN COPY TO THE ABOVE
+// DIRECTORY.
+
+{
+  "DatabasePath": "/tmp/gatewaylogs/",
+  "MediaMimeType": "ammo/vnd.edu.vu.isis.ammo.dash.media",
+  "EventMimeType": "ammo/vnd.edu.vu.isis.ammo.dash.event",
+  "StatusMimeType": "ammo/vnd.edu.vu.isis.ammo.dash.status",
+  "CategoryMimeType": "ammo/vnd.edu.vu.isis.ammo.dash.category"
+}
+//:mode=javascript: (jEdit modeline for syntax highlighting)

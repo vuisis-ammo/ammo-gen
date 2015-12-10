@@ -1,0 +1,359 @@
+groupType() ::= "gateway-plugin-serialization"
+
+holderName(name, rel) ::= "<name.camel><rel.name.bactrian>Data"
+
+topPluginSerializationDeclTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#include \<string\>
+#include "<cp.name.bactrian>.pb.h"
+#include "<cp.name.bactrian>_Export.h"
+
+namespace ammo
+{
+  namespace gateway
+  {
+    namespace serialization
+    {
+      <cp.relations: {rel | class <cp.name.bactrian><rel.name.bactrian>;};
+                      separator="\n">
+    }
+  }
+}
+
+using namespace ammo::gateway::serialization;
+
+<cp.relations: {rel | <genDecls(name=cp.name, rel=rel)>};
+                separator="\n\n">
+>>
+
+genDecls(name, rel) ::= <<
+class <name.bactrian>_Export <holderName(name=name, rel=rel)>
+{
+public:
+  <rel.fields: {field | <relationFieldTypeMap.(field.dtype)> <field.name.camel>_;};
+                separator="\n">
+
+  std::string encodeJson (void);
+  bool decodeJson (const std::string &data);
+  
+  <cp.name.bactrian><rel.name.bactrian> *encodeProtobuf (void);
+  bool decodeProtobuf (const <cp.name.bactrian><rel.name.bactrian> *msg);
+};
+>>
+
+enumFieldTypeDecl(name, rel, field) ::= <<
+<name.bactrian><rel.name.bactrian>_<field.name.bactrian>
+>>
+
+relationFieldTypeMap ::= [
+    "SERIAL"     : "std::string",
+    "FK"         : "long",
+    "FILE"       : "std::string",
+    "INTEGER"    : "long",
+    "EXCLUSIVE"  : "<enumFieldTypeDecl(name=cp.name, rel=rel, field=field)>",
+    "INCLUSIVE"  : "<enumFieldTypeDecl(name=cp.name, rel=rel, field=field)>",
+    "BOOL"       : "bool",
+    "TIMESTAMP"  : "long",
+    "LONG"       : "long",
+    "REAL"       : "double",
+    "GUID"       : "std::string",
+    "TEXT"       : "std::string",
+    "BLOB"       : "std::string",
+    default: "std::string"
+]
+
+topPluginSerializationDefnTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#include \<sstream\>
+
+#include "json/value.h"
+#include "json/reader.h"
+#include "log.h"
+
+#include "<cp.name.bactrian>Serialization.h"
+#include "<cp.name.bactrian>.pb.h"
+
+<cp.relations: {rel | <genDefns(name=cp.name, rel=rel)>};
+                separator="\n\n">
+>>
+
+genDefns(name, rel) ::= <<
+std::string
+<holderName(name=name, rel=rel)>::encodeJson (void)
+{
+  std::ostringstream sstream;
+  sstream \<\< "{"
+  <rel.fields: {field | <encodeField(field=field)>};
+                separator=" \<\< \",\"\n">      
+          \<\< "\}";
+  
+  std::string retval (sstream.str ());
+  return retval;
+}
+
+bool
+<holderName(name=name, rel=rel)>::decodeJson (const std::string &data)
+{
+  Json::Reader jsonReader;
+  Json::Value root;
+  bool parseSuccess = jsonReader.parse (data, root);
+
+  if (!parseSuccess)
+    {
+      LOG_ERROR ("JSON parsing error: "
+                 \<\< jsonReader.getFormatedErrorMessages ());
+                 
+      return false;
+    }
+    
+  <rel.fields: {field | <assignField(field=field)>};
+                separator="\n">
+                
+  return true;
+}
+
+<name.bactrian><rel.name.bactrian> *
+<holderName(name=name, rel=rel)>::encodeProtobuf (void)
+{
+  <name.bactrian><rel.name.bactrian> *newMsg =
+    new <name.bactrian><rel.name.bactrian>;
+    
+  <rel.fields: {field | newMsg->set_<field.name.snake> (<field.name.camel>_);};
+                separator="\n">
+    
+  return newMsg;
+}
+
+bool
+<holderName(name=name, rel=rel)>::decodeProtobuf (
+  const <name.bactrian><rel.name.bactrian> *msg)
+{
+  <rel.fields: {field | <field.name.camel>_ = msg-\><field.name.snake> ();};
+                separator="\n">
+                
+  return true;
+}
+>>
+
+stringAdd(name) ::= <<
+ \<\< "\"" \<\< <name.camel>_ \<\< "\""
+>>
+
+numericAdd(name) ::= <<
+ \<\< <name.camel>_
+>>
+
+boolAdd(name) ::= <<
+ \<\< (<name.camel>_ ? 0 : 1)
+>>
+
+blobAdd(name) ::= <<
+ \<\< "\"" \<\< std::string (<name.camel>_.begin (), <name.camel>_.end ()) \<\< "\""
+>>
+
+relationFieldValueMap ::= [
+    "SERIAL"     : "stringAdd",
+    "FK"         : "numericAdd",
+    "FILE"       : "stringAdd",
+    "INTEGER"    : "numericAdd",
+    "EXCLUSIVE"  : "numericAdd",
+    "INCLUSIVE"  : "numericAdd",
+    "BOOL"       : "boolAdd",
+    "TIMESTAMP"  : "numericAdd",
+    "LONG"       : "numericAdd",
+    "REAL"       : "numericAdd",
+    "GUID"       : "stringAdd",
+    "TEXT"       : "stringAdd",
+    "BLOB"       : "blobAdd",
+    default: "stringAdd"
+]
+
+encodeField(field) ::= <<
+        \<\< "\"<field.name.camel>\" : "<(relationFieldValueMap.(field.dtype))(field.name)>
+>>
+
+relationFieldAssignMap ::= [
+    "SERIAL"     : "asString",
+    "FK"         : "asInt",
+    "FILE"       : "asString",
+    "INTEGER"    : "asInt",
+    "EXCLUSIVE"  : "asInt",
+    "INCLUSIVE"  : "asInt",
+    "BOOL"       : "asInt",
+    "TIMESTAMP"  : "asInt",
+    "LONG"       : "asInt",
+    "REAL"       : "asDouble",
+    "GUID"       : "asString",
+    "TEXT"       : "asString",
+    "BLOB"       : "asString",
+    default: "asString"
+]
+
+enumCastMap ::= [
+    "EXCLUSIVE"  : "(<name.bactrian><rel.name.bactrian>_<field.name.bactrian>) ",
+    "INCLUSIVE"  : "(<name.bactrian><rel.name.bactrian>_<field.name.bactrian>) ",
+    default: ""
+]
+
+enumAssignCast(name, rel, field) ::= <<
+<enumCastMap.(field.dtype)>
+>>
+
+assignField(field) ::= <<
+<field.name.camel>_ = <enumAssignCast(name=cp.name, rel=rel, field=field)>root["<field.name.camel>"].<relationFieldAssignMap.(field.dtype)> ();
+>>
+
+topProtoTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+package ammo.gateway.serialization;
+
+<cp.relations: {rel | <protoMessage(name=cp.name, rel=rel)>}; separator="\n\n">
+>>
+
+enumDeclTemplate(field) ::= <<
+enum <field.name.bactrian> {
+  <field.enums: { enum | <field.name.cobra>_<enum.key.cobra> = <i0>;}; separator="\n">
+}
+
+
+>>
+
+protoFieldMap ::= [
+        "SERIAL"     : "string",
+        "FK"         : "int32",
+        "FILE"       : "string",
+        "INTEGER"    : "int32",
+        "EXCLUSIVE"  : "<field.name.bactrian>",
+        "INCLUSIVE"  : "<field.name.bactrian>",
+        "BOOL"       : "bool",
+        "TIMESTAMP"  : "int32",
+        "LONG"       : "int32",
+        "REAL"       : "double",
+        "GUID"       : "string",
+        "TEXT"       : "string",
+        "BLOB"       : "bytes",
+        default: "string"
+]
+
+protoEnumDeclMap ::= [
+        "EXCLUSIVE"  : "<enumDeclTemplate(field=field)>",
+        "INCLUSIVE"  : "<enumDeclTemplate(field=field)>",
+        default: ""
+]
+
+protoDefaultDeclMap ::= [
+        "SERIAL"     : {"<def_val>"},
+        "FK"         : {<def_val>},
+        "FILE"       : {"<def_val>"},
+        "INTEGER"    : {<def_val>},
+        "EXCLUSIVE"  : {<cobra_name>_<def_val>},
+        "INCLUSIVE"  : {<cobra_name>_<def_val>},
+        "BOOL"       : {<def_val>},
+        "TIMESTAMP"  : "-1",
+        "LONG"       : {<def_val>},
+        "REAL"       : {<def_val>},
+        "GUID"       : {"<def_val>"},
+        "TEXT"       : {"<def_val>"},
+        "BLOB"       : "\"\"",
+        default: "\"\""
+]
+
+protoDefaultDeclTmpl(type, def_val, cobra_name) ::= <%
+ [default = <protoDefaultDeclMap.(type)>]
+%>
+
+protoMessage(name, rel) ::= <<
+message <name.bactrian><rel.name.bactrian> {
+  <rel.fields: {field | <protoEnumDeclMap.(field.dtype)>}; anchor>
+  <rel.fields: {field | optional <protoFieldMap.(field.dtype)> <field.name.snake> = <i><protoDefaultDeclTmpl(field.dtype, field.default, field.name.cobra)>;};
+                separator="\n">
+}
+>>
+
+topPluginSerializationMPCTemplate(cp) ::= <<
+// THIS IS GENERATED CODE. ANY CHANGES MADE TO THIS FILE BY HAND
+// WILL BE LOST.
+
+project(Lib<cp.name.bactrian>Serialization) : acelib, protobuf, gatewaycommon {
+  after += LibJSON
+  libs += json
+  includes += $(GATEWAY_ROOT)/LibJSON
+  sharedname = <cp.name.bactrian>Serialization
+  
+  specific(prop:windows) {
+    macros += <cp.name.cobra>_DLL_BUILD
+  }
+  
+  Protobuf_Files {
+    <cp.name.bactrian>.proto
+  }
+  
+  Source_Files {
+    <cp.name.bactrian>Serialization.cpp
+    <cp.name.bactrian>.pb.cc
+  }
+}
+>>
+
+topPluginSerializationExportHdrTemplate(cp) ::= <<
+// -*- C++ -*-
+// Definition for Windows export directives.
+// This file is generated automatically
+// ------------------------------
+#ifndef <cp.name.cobra>_EXPORT_H
+#define <cp.name.cobra>_EXPORT_H
+
+#include \<ace/config-all.h\>
+
+#if defined (ACE_AS_STATIC_LIBS) && !defined (<cp.name.cobra>_HAS_DLL)
+#  define <cp.name.cobra>_HAS_DLL 0
+#endif /* ACE_AS_STATIC_LIBS && <cp.name.cobra>_HAS_DLL */
+
+#if !defined (<cp.name.cobra>_HAS_DLL)
+#  define <cp.name.cobra>_HAS_DLL 1
+#endif /* ! <cp.name.cobra>_HAS_DLL */
+
+#if defined (<cp.name.cobra>_HAS_DLL) && (<cp.name.cobra>_HAS_DLL == 1)
+#  if defined (<cp.name.cobra>_BUILD_DLL)
+#    define <cp.name.bactrian>_Export ACE_Proper_Export_Flag
+#    define <cp.name.cobra>_SINGLETON_DECLARATION(T) ACE_EXPORT_SINGLETON_DECLARATION (T)
+#    define <cp.name.cobra>_SINGLETON_DECLARE(SINGLETON_TYPE, CLASS, LOCK) ACE_EXPORT_SINGLETON_DECLARE(SINGLETON_TYPE, CLASS, LOCK)
+#  else /* <cp.name.cobra>_BUILD_DLL */
+#    define <cp.name.bactrian>_Export ACE_Proper_Import_Flag
+#    define <cp.name.cobra>_SINGLETON_DECLARATION(T) ACE_IMPORT_SINGLETON_DECLARATION (T)
+#    define <cp.name.cobra>_SINGLETON_DECLARE(SINGLETON_TYPE, CLASS, LOCK) ACE_IMPORT_SINGLETON_DECLARE(SINGLETON_TYPE, CLASS, LOCK)
+#  endif /* <cp.name.cobra>_BUILD_DLL */
+#else /* <cp.name.cobra>_HAS_DLL == 1 */
+#  define <cp.name.bactrian>_Export
+#  define <cp.name.cobra>_SINGLETON_DECLARATION(T)
+#  define <cp.name.cobra>_SINGLETON_DECLARE(SINGLETON_TYPE, CLASS, LOCK)
+#endif /* <cp.name.cobra>_HAS_DLL == 1 */
+
+// Set <cp.name.cobra>_NTRACE = 0 to turn on library specific tracing even if
+// tracing is turned off for ACE.
+#if !defined (<cp.name.cobra>_NTRACE)
+#  if (ACE_NTRACE == 1)
+#    define <cp.name.cobra>_NTRACE 1
+#  else /* (ACE_NTRACE == 1) */
+#    define <cp.name.cobra>_NTRACE 0
+#  endif /* (ACE_NTRACE == 1) */
+#endif /* !<cp.name.cobra>_NTRACE */
+
+#if (<cp.name.cobra>_NTRACE == 1)
+#  define <cp.name.cobra>_TRACE(X)
+#else /* (<cp.name.cobra>_NTRACE == 1) */
+#  if !defined (ACE_HAS_TRACE)
+#    define ACE_HAS_TRACE
+#  endif /* ACE_HAS_TRACE */
+#  define <cp.name.cobra>_TRACE(X) ACE_TRACE_IMPL(X)
+#  include "ace/Trace.h"
+#endif /* (<cp.name.cobra>_NTRACE == 1) */
+
+#endif /* <cp.name.cobra>_EXPORT_H */
+
+// End of auto generated file.
+>>
+

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="battle space">
+
+<!-- examine the MIL-STD-2525c for field values -->
+<!-- 
+  The key attribute is used to determine how items are to be updated.
+  The key is used to identify tuples in a network transparent manner.
+
+  The scope attribute is also used to specify portablity.
+  - local : fields which are not transmited but are only local.
+            they are not to be updated by remote sources.
+  - mobile : they are sent and received, this is the default for non-key fields.
+  - immutable : they should not be changed once, the default for key fields.
+-->
+
+  <sponsor name="edu.vu.isis.ammo.battlespace" />
+
+<!--
+  json: {"function code":"EGJP","shape":"egjp.png,"type":"unit"}
+-->
+  <relation name="function symbol">
+     <field type="TEXT" name="function code" default="">
+     A string representing and encoding a function to be applied to a symbol.  
+     </field>
+     <field type="FILE" name="shape" default="">
+     The file name.
+     </field>
+     <field type="TEXT" name="type" default="">
+     The type of function symbol.
+     </field>
+  </relation>
+
+<!--
+     Anchors are separated from the main gcm table as they are expected to be
+     updated frequently, especially in the case of mobile units.
+-->
+<!--
+  json: {"gcm uuid":"tactic universally unique id","ordinal":1,"longitude"::-108.5,"latitude":35.7}
+  json: {"gcm uuid":"tactic universally unique id","ordinal":2,"longitude"::-108.3,"latitude":35.7}
+-->
+  <relation name="tactic anchor">
+     <field type="TEXT" name="gcm uuid" default="0" key="1"> </field>
+
+     <field type="FK" name="tactic id" default="-1" scope="local"> </field>
+     Refers to _id of the maneuver tactic
+     <field type="INTEGER" name="ordinal" default="0">
+     A field indicating the order of the anchor points.
+     Starts at zero.
+     </field>
+     <field type="REAL" name="longitude" default="0.0"> </field>
+     <field type="REAL" name="latitude" default="90.0"> </field>
+  </relation>
+
+<!--
+  json: {"gcm uuid":"unit universally unique id","longitude"::-108.5,"latitude":35.7}
+-->
+  <relation name="gcm anchor">
+     <field type="TEXT" name="gcm uuid" default="0" key="1"> </field>
+     <field type="FK" name="gcm id" default="-1" scope="local"> </field>
+     Refers to _id of the gcm 
+     <field type="REAL" name="longitude" default="0.0"> </field>
+     <field type="REAL" name="latitude" default="90.0"> </field>
+     <field type="REAL" name="speed" default="0.0">
+       Horizontal speed in meters per second.
+     </field>
+     <field type="REAL" name="heading" default="0.0">
+       Compass heading in decimal degrees clockwise from true north.
+     </field>
+  </relation>
+
+
+<!--
+  json: {"uuid":"univerally unique id","title":"title","description":"description","gcm type":"UNIT"
+     "standard id":"FRIEND"}
+-->
+  <relation name="gcm">
+     <field type="TEXT" name="uuid" default="0" key="1"> </field>
+
+     <field type="TEXT" name="sidc" default=""> </field>
+     <field type="TEXT" name="title" default=""> </field>
+     <field type="TEXT" name="description" default=""> </field>
+     <field type="REAL" name="longitude" default="0.0"> This is decimal degrees</field>
+     <field type="REAL" name="latitude" default="90.0"> </field>
+     <field type="REAL" name="speed" default="0.0">
+       Horizontal speed in meters per second.
+     </field>
+     <field type="REAL" name="heading" default="0.0">
+       Compass heading in decimal degrees clockwise from true north.
+     </field>
+
+     <field type="TIMESTAMP" name="created date" default="now"> </field>
+     <field type="TIMESTAMP" name="modified date" default="now"> </field>
+
+     <field type="FK" name="function" default="-1" scope="local"></field>
+
+     <field type="EXCLUSIVE" name="gcm type" default="UNIT">
+        <enum key="EQUIPMENT" value="1"/>
+        <enum key="UNIT" value="2"/>
+        <enum key="INSTALLATION" value="3"/>
+        <enum key="SIGNALS INTELLIGENCE" value="4"/>
+        <enum key="STABILITY OPERATIONS" value="5"/>
+        <enum key="METEOROLOGICAL" value="6"/>
+        <enum key="INCIDENT" value="7"/>
+        <enum key="EMERGENCY MANAGEMENT" value="8"/>
+        <enum key="EMERGENCY MEDICAL UNIT" value="9"/>
+        <enum key="EMERGENCY MEDICAL INCIDENT" value="10"/>
+        <enum key="EMERGENCY MEDICAL INSTALLATION" value="11"/>
+        <enum key="MANEUVER TACTIC" value="12"/>
+        <enum key="BATTLEFIELD FEATURE" value="13"/>
+     </field>
+
+     <field type="EXCLUSIVE" name="standard id" default="UNKNOWN">
+        <enum key="PENDING" value="1"/>
+        <enum key="UNKNOWN" value="2"/>
+        <enum key="ASSUMED FRIEND" value="3"/>
+        <enum key="FRIEND" value="4"/>
+        <enum key="NEUTRAL" value="5"/>
+        <enum key="SUSPECT" value="6"/>
+        <enum key="HOSTILE" value="7"/>
+     </field>
+
+     <field type="EXCLUSIVE" name="exercise" default="ACTIVE">
+        <enum key="PENDING" value="1"/>
+        <enum key="ACTIVE" value="2"/>
+        <enum key="UNKNOWN" value="3"/>
+        <enum key="ASSUMED FRIEND" value="3"/>
+        <enum key="FRIEND" value="3"/>
+        <enum key="NEUTRAL" value="3"/>
+        <enum key="JOKER" value="4"/>
+        <enum key="FAKER" value="5"/>
+     </field>
+
+     <field type="EXCLUSIVE" name="battle dimension" default="GROUND">
+        <enum key="SPACE" value="1"/>
+        <enum key="AIR" value="2"/>
+        <enum key="GROUND" value="3"/>
+        <enum key="SEA SURFACE" value="4"/>
+        <enum key="SEA SUB" value="5"/>
+        <enum key="SOF" value="6"/>
+        <enum key="OTHER" value="7"/>
+        <enum key="UNKNOWN" value="8"/>
+     </field>
+
+     <field type="EXCLUSIVE" name="reality" default="PRESENT">
+        <enum key="PRESENT" value="1"/>
+        <enum key="PRESENT FULLY CAPABLE" value="2"/>
+        <enum key="PRESENT DAMAGED" value="3"/>
+        <enum key="PRESENT DESTROYED" value="4"/>
+        <enum key="PRESENT FULL TO CAPACITY" value="5"/>
+        <enum key="ANTICIPATED PLANNED" value="6"/>
+        <enum key="DRAFT" value="7"/>
+        <enum key="CONCEPTUAL" value="8"/>
+     </field>
+
+     <field type="EXCLUSIVE" name="echelon" default="BATTALION">
+       <enum key="CREW" value="1"/>
+
+       <enum key="SQUAD" value="2"/>
+
+       <enum key="SECTION" value="3"/>
+
+       <enum key="PLATOON" value="4"/>
+       <enum key="DETACHMENT" value="4"/>
+
+       <enum key="COMPANY" value="5"/>
+       <enum key="BATTERY" value="5"/>
+       <enum key="TROOP" value="5"/>
+
+       <enum key="BATTALION" value="6"/>
+       <enum key="SQUADRON" value="6"/>
+
+       <enum key="REGIMENT" value="7"/>
+       <enum key="GROUP" value="7"/>
+
+       <enum key="BRIGADE" value="8"/>
+
+       <enum key="DIVISION" value="9"/>
+
+       <enum key="CORPS" value="10"/>
+       <enum key="MEF" value="10"/>
+
+       <enum key="ARMY" value="11"/>
+
+       <enum key="ARMY GROUP" value="12"/>
+       <enum key="FRONT" value="12"/>
+
+       <enum key="REGION" value="13"/>
+
+       <enum key="COMMAND" value="14"/>
+     </field>
+
+  </relation>
+
+  <!-- <enum key="EQUIPMENT" value="1"/> -->
+  <relation name="equipment">
+     <field type="FK" name="gcm id" default="-1" scope="local"> </field>
+
+     <field type="EXCLUSIVE" name="mobility" default="UNCERTAIN">
+       <enum key="TRACK" value="1"/>
+       <enum key="STATIC" value="2"/>
+       <enum key="TOWED" value="3"/>
+       <enum key="RAIL" value="4"/>
+       <enum key="OVER THE SNOW" value="5"/>
+       <enum key="SLED" value="6"/>
+       <enum key="PACK ANIMALS" value="7"/>
+       <enum key="BARGE" value="8"/>
+       <enum key="AMPHIBIOUS" value="9"/>
+       <enum key="TOWED ARRAY SHORT" value="10"/>
+       <enum key="TOWED ARRAY LONG" value="11"/>
+       <enum key="UNCERTAIN" value="12"/>
+     </field>
+  </relation>
+
+  <!-- <enum key="UNIT" value="2"/> -->
+<!--
+  json: {"key":"tactic id","ordinal":2,"longitude"::-108.3,"latitude":35.7}
+-->
+  <relation name="unit">
+     <field type="FK" name="gcm id" default="-1" scope="local"> </field>
+  </relation>
+  <!-- <enum key="INSTALLATION" value="3"/> -->
+  <relation name="installation">
+     <field type="FK" name="gcm id" default="-1" scope="local"> </field>
+  </relation>
+  <!-- <enum key="SIGNALS INTELLIGENCE" value="4"/> -->
+  <relation name="signals intelligence">
+     <field type="FK" name="gcm id" default="-1" scope="local"> </field>
+  </relation>
+  <!-- <enum key="STABILITY OPERATIONS" value="5"/> -->
+  <relation name="stability operations">
+     <field type="FK" name="gcm id" default="-1" scope="local"> </field>
+  </relation>
+
+  <!-- <enum key="..." value="..."/> -->
+
+  <!-- <enum key="MANEUVER TACTIC" value="11"/> -->
+  <relation name="maneuver tactic">
+     <field type="FK" name="gcm id" default="-1" scope="local"> </field>
+     <field type="EXCLUSIVE" name="name" default="OBJECTIVE">
+       <enum key="AXIS OF ATTACK" value="1"/>
+       <enum key="ASSEMBLY AREA" value="2"/>
+       <enum key="OBJECTIVE" value="3"/>
+     </field>
+  </relation>
+
+</content-provider>

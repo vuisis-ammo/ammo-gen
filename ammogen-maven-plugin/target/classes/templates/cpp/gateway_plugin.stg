@@ -1,0 +1,1187 @@
+groupType() ::= "gateway-plugin"
+
+receiverName(name) ::= "<name.bactrian>Receiver"
+receiverGuard(name) ::= "<name.cobra>_RECEIVER_H"
+
+cfgMgrName(name) ::= "<name.bactrian>ConfigManager"
+cfgMgrGuard(name) ::= "<name.cobra>_CONFIG_MANAGER_H"
+
+pushHandlerName(name) ::= "<name.bactrian>PushHandler"
+pushHandlerGuard(name) ::= "<name.cobra>_PUSH_HANDLER_H"
+
+queryHandlerName(name) ::= "<name.bactrian>QueryHandler"
+queryHandlerGuard(name) ::= "<name.cobra>_QUERY_HANDLER_H"
+
+queryStatementBuilderName(name) ::= "<name.bactrian>QueryStatementBuilder"
+queryParamParserName(name) ::= "<name.bactrian>QueryParamParser"
+
+topPluginMainTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#include "ace/Reactor.h"
+#include "ace/OS_NS_unistd.h" 
+#include "ace/Signal.h" 
+
+#include "log.h"
+#include "version.h"
+
+#include "<receiverName(name=cp.name)>.h"
+#include "<cfgMgrName(name=cp.name)>.h"
+
+using namespace ammo::gateway;
+
+// Handle SIGINT so the program can exit cleanly (otherwise, we just terminate
+// in the middle of the reactor event loop, which isn't always a good thing).
+class SigintHandler : public ACE_Event_Handler
+{
+public:
+  int
+  handle_signal (int signum, siginfo_t * = 0, ucontext_t * = 0)
+  {
+    if (signum == SIGINT || signum == SIGTERM)
+      {
+        ACE_Reactor::instance ()->end_reactor_event_loop ();
+      }
+    
+    return 0;
+  }
+};
+
+int main (int /* argc */, char ** /* argv */)
+{
+  LOG_INFO ("AMMO <cp.name.norm> Gateway Plugin ("
+            \<\< VERSION
+            \<\< " built on "
+            \<\< __DATE__
+            \<\< " at "
+            \<\< __TIME__
+            \<\< ")");
+  
+  SigintHandler * handleExit = new SigintHandler();
+  ACE_Reactor::instance()->register_handler(SIGINT, handleExit);
+  ACE_Reactor::instance()->register_handler(SIGTERM, handleExit);
+  
+  LOG_DEBUG ("Creating <cp.name.bactrian> receiver...");
+  
+  <receiverName(name=cp.name)> *receiver = new <receiverName(name=cp.name)>;
+  GatewayConnector *gatewayConnector = new GatewayConnector (receiver);
+
+  <cfgMgrName(name=cp.name)> *config =
+	  <cfgMgrName(name=cp.name)>::getInstance (receiver, gatewayConnector);
+	  
+	// Nothing further is done with 'config' since everything happens
+	// in the constructor. This macro avoids the 'unused' warning.  
+	ACE_UNUSED_ARG (config);
+
+	if (!receiver->init ())
+	  {
+	    // Error msg already output, just exit w/o starting reactor.
+	    return -1;
+	  }
+
+  // Get the process-wide ACE_Reactor (the one the acceptor should
+  // have registered with)
+  ACE_Reactor *reactor = ACE_Reactor::instance ();
+  LOG_DEBUG ("Starting event loop...");
+  reactor->run_reactor_event_loop ();
+
+  return 0;
+}  
+>>
+
+topPluginCfgMgrHeaderTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#ifndef <cfgMgrGuard(name=cp.name)>
+#define <cfgMgrGuard(name=cp.name)>
+
+#include \<string\>
+
+class <receiverName(name=cp.name)>;
+
+namespace ammo
+{
+  namespace gateway
+  {
+    class GatewayConnector;
+  }
+}
+
+class <cfgMgrName(name=cp.name)>
+{
+public:
+  static
+  <cfgMgrName(name=cp.name)> *getInstance (
+    <receiverName(name=cp.name)> *receiver = 0,
+	  ammo::gateway::GatewayConnector *connector = 0);
+	  
+	const std::string &db_filepath (void) const;
+	  
+  <cp.relations: { rel | const std::string &<rel.name.camel>MimeType (void) const;};
+                   separator="\n">
+	
+private:
+  <cfgMgrName(name=cp.name)> (
+    <receiverName(name=cp.name)> *receiver,
+    ammo::gateway::GatewayConnector *connector);
+    
+  std::string findConfigFile (void);
+  
+private:
+  static <cfgMgrName(name=cp.name)> *sharedInstance;
+	
+	std::string db_filepath_;
+	<receiverName(name=cp.name)> *receiver_;
+  ammo::gateway::GatewayConnector *connector_;
+  
+  <cp.relations: { rel | std::string <rel.name.camel>MimeType_;};
+                   separator="\n">
+};
+  
+#endif // <cfgMgrGuard(name=cp.name)>
+>>
+
+topPluginCfgMgrSourceTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#include \<fstream\>
+
+#include "ace/OS_NS_sys_stat.h"
+
+#include "log.h"
+#include "json/value.h"
+#include "json/reader.h"
+
+#include "<cfgMgrName(name=cp.name)>.h"
+#include "<receiverName(name=cp.name)>.h"
+
+const char *CONFIG_DIRECTORY = "ammo-gateway";
+const char *CONFIG_FILE = "<cp.name.bactrian>PluginConfig.json";
+
+using namespace std;
+using namespace ammo::gateway;
+
+<cfgMgrName(name=cp.name)> *<cfgMgrName(name=cp.name)>::sharedInstance = 0;
+
+<cfgMgrName(name=cp.name)>::<cfgMgrName(name=cp.name)> (
+      <receiverName(name=cp.name)> *receiver,
+      GatewayConnector *connector)
+  : receiver_ (receiver),
+    connector_ (connector)
+{
+  LOG_TRACE ("Parsing config file...");
+	
+  string configFilename = findConfigFile ();
+  
+  if (configFilename != "")
+    {
+      ifstream configFile (configFilename.c_str ());
+	
+      if (configFile)
+        {
+          Json::Value root;
+          Json::Reader reader;
+        
+          bool parsingSuccessful = reader.parse (configFile, root);
+      
+          if (parsingSuccessful)
+            {
+              if (root["DatabasePath"].isString ())
+                {
+                  db_filepath_ = root["DatabasePath"].asString ();
+                }
+              else
+                {
+                  LOG_ERROR ("DatabasePath string is missing "
+                             \<\< "or malformed in config file");
+                }
+              <cp.relations: { rel | <registerMimeType(name=cp.name, rel=rel)>
+              }>
+            }
+          else
+            {
+              LOG_ERROR ("JSON parsing error in config file '"
+                         \<\< CONFIG_FILE
+                         \<\< "'.");
+            }
+		
+          configFile.close ();
+        }
+      else
+        {
+          LOG_WARN ("Could not read from config file '"
+                    \<\< CONFIG_FILE
+                    \<\< "'.  Using defaults.");
+        }
+	  }
+  else
+    {
+      LOG_WARN ("Using default configuration.");
+    }
+}
+
+<cfgMgrName(name=cp.name)> *
+<cfgMgrName(name=cp.name)>::getInstance (
+  <receiverName(name=cp.name)> *receiver,
+  GatewayConnector *connector)
+{
+  if (sharedInstance == 0)
+    {
+      if (receiver == 0 || connector == 0)
+        {
+          LOG_ERROR ("First call to getInstance() must pass in"
+                     " a receiver and a connector");
+                     
+          return 0;
+        }
+        
+	    sharedInstance =
+		    new <cfgMgrName(name=cp.name)> (receiver, connector);
+	  }
+	
+  return sharedInstance;
+}
+
+const std::string &
+<cfgMgrName(name=cp.name)>::db_filepath (void) const
+{
+  return db_filepath_;
+}
+
+<cp.relations: { rel | <mimeTypeAccessor(name=cp.name, rel=rel)>};
+                 separator="\n\n">
+
+string
+<cfgMgrName(name=cp.name)>::findConfigFile (void)
+{
+  string filePath;
+  ACE_stat statStruct;
+  
+  string home, gatewayRoot;
+  
+  char *homeC = ACE_OS::getenv("HOME");
+  if(homeC == NULL) {
+    home = "";
+  } else {
+    home = homeC;
+  }
+  
+  char *gatewayRootC = ACE_OS::getenv("GATEWAY_ROOT");
+  if(gatewayRootC == NULL) {
+    gatewayRoot = "";
+  } else {
+    gatewayRoot = gatewayRootC;
+  }
+  
+  filePath = CONFIG_FILE;
+  //stat returns 0 if the file exists
+  if(ACE_OS::stat(filePath.c_str(), &statStruct)) {
+    filePath = home + "/" + "." + CONFIG_DIRECTORY + "/" + CONFIG_FILE;
+    if(ACE_OS::stat(filePath.c_str(), &statStruct)) {
+      filePath = string("/etc/") + CONFIG_DIRECTORY + "/" + CONFIG_FILE;
+      if(ACE_OS::stat(filePath.c_str(), &statStruct)) {
+        filePath = gatewayRoot + "/etc/" + CONFIG_FILE;
+        if(ACE_OS::stat(filePath.c_str(), &statStruct)) {
+          filePath = gatewayRoot + "/build/etc/" + CONFIG_FILE;
+          if(ACE_OS::stat(filePath.c_str(), &statStruct)) {
+            filePath = string("../etc/") + CONFIG_FILE;
+            if(ACE_OS::stat(filePath.c_str(), &statStruct)) {
+              LOG_ERROR("No config file found.");
+              return "";
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  LOG_INFO ("Using config file: " \<\< filePath);
+  return filePath;
+}
+>>
+
+registerMimeType(name, rel) ::= <<    
+if (root["<rel.name.bactrian>MimeType"].isString ())
+  {
+    string mime_type (root["<rel.name.bactrian>MimeType"].asString ());
+    LOG_DEBUG ("Registering push and pull interest in " \<\< mime_type);
+    connector_->registerDataInterest (mime_type, receiver_);
+    connector_->registerPullInterest (mime_type, receiver_);
+    <rel.name.camel>MimeType_ = mime_type;
+  }
+else
+  {
+    LOG_ERROR ("<rel.name.bactrian>MimeType string is missing "
+               \<\< "or malformed in config file");
+  }
+>>
+
+mimeTypeAccessor(name, rel) ::= <<
+const std::string &
+<cfgMgrName(name=name)>::<rel.name.camel>MimeType (void) const
+{
+  return <rel.name.camel>MimeType_;
+}
+>>
+
+topPluginConfigJsonTemplate(cp) ::= <<
+// THIS IS GENERATED CODE. A COPY IS ALSO PLACED IN
+// $GATEWAY_ROOT/build/etc. TO EDIT AND AVOID OVERWRITING UPON
+// REGENERATION, EDIT THIS FILE, THEN COPY TO THE ABOVE
+// DIRECTORY.
+
+{
+  "DatabasePath": "/tmp/gatewaylogs/",
+  <cp.relations: { rel | "<rel.name.bactrian>MimeType": "ammo/vnd.<cp.sponsor>.<rel.name.snake>"};
+                   separator=",\n">
+}
+//:mode=javascript: (jEdit modeline for syntax highlighting)
+>>
+
+topReceiverHeaderTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#ifndef <receiverGuard(name=cp.name)>
+#define <receiverGuard(name=cp.name)>
+
+#include "GatewayConnector.h"
+
+class sqlite3;
+
+class <receiverName(name=cp.name)> : public ammo::gateway::DataPushReceiverListener,
+					               public ammo::gateway::GatewayConnectorDelegate,
+                         public ammo::gateway::PullRequestReceiverListener
+{
+public:
+  <receiverName(name=cp.name)> (void);
+  ~<receiverName(name=cp.name)> (void);
+	
+  // GatewayConnectorDelegate methods
+  virtual void onConnect (ammo::gateway::GatewayConnector *sender);
+  virtual void onDisconnect (ammo::gateway::GatewayConnector *sender);
+  
+  // DataPushReceiverListener methods
+  virtual void onPushDataReceived (ammo::gateway::GatewayConnector *sender,
+							                     ammo::gateway::PushData &pushData);
+	
+  // PullRequestReceiverListener methods
+  virtual void onPullRequestReceived (ammo::gateway::GatewayConnector *sender,
+                                      ammo::gateway::PullRequest &pullReq);
+                               
+  bool init (void);
+  
+private:
+  // Creates directories in the database filepath if they don't exist.
+  bool check_path (void);
+
+private:
+  // Pointer to open database.
+  sqlite3 *db_;
+};
+
+#endif // <receiverGuard(name=cp.name)>
+>>
+
+topReceiverSourceTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#include \<sqlite3.h\>
+
+#include "ace/OS_NS_unistd.h"
+#include "ace/OS_NS_sys_stat.h"
+
+#include "log.h"
+
+#include "<receiverName(name=cp.name)>.h"
+#include "<pushHandlerName(name=cp.name)>.h"
+#include "<queryHandlerName(name=cp.name)>.h"
+#include "<cfgMgrName(name=cp.name)>.h"
+
+using namespace ammo::gateway;
+
+<receiverName(name=cp.name)>::<receiverName(name=cp.name)> (void)
+  : db_ (0)
+{
+}
+
+<receiverName(name=cp.name)>::~<receiverName(name=cp.name)> (void)
+{
+  LOG_DEBUG ("Closing <cp.name.bactrian> database...");
+	
+  sqlite3_close (db_);
+}
+
+void
+<receiverName(name=cp.name)>::onConnect (GatewayConnector * /* sender */)
+{
+}
+
+void
+<receiverName(name=cp.name)>::onDisconnect (GatewayConnector * /* sender */)
+{
+}
+
+void
+<receiverName(name=cp.name)>::onPushDataReceived (GatewayConnector * /* sender */,
+                                      PushData &pushData)
+{
+  <pushHandlerName(name=cp.name)> push_handler (db_, pushData);
+  
+  // Error message is output elsewhere if handler fails.
+  if (push_handler.handlePush ())
+    {
+      LOG_TRACE ("<cp.name.bactrian> data store successful");
+    }
+}
+
+void
+<receiverName(name=cp.name)>::onPullRequestReceived (GatewayConnector *sender,
+                                         PullRequest &pullRequest)
+{
+  if (sender == 0)
+    {
+      LOG_WARN ("Sender is null, no responses will be sent");
+    }
+    
+  <cfgMgrName(name=cp.name)> *cfg_mgr =
+    <cfgMgrName(name=cp.name)>::getInstance ();
+		
+  <cp.relations: { rel | <launchQueryHandler(name=rel.name)>}; separator="\n\n">  
+}
+
+bool
+<receiverName(name=cp.name)>::init (void)
+{
+  if (!check_path ())
+    {
+      // check_path() will also output error info.
+      LOG_ERROR ("<receiverName(name=cp.name)>::init() failed");
+      return false;
+    }
+    
+  std::string fullpath (
+    <cfgMgrName(name=cp.name)>::getInstance ()->db_filepath ());
+  fullpath += "<cp.name.bactrian>_db.sql3";
+  
+  int status = sqlite3_open (fullpath.c_str (), &db_);
+  
+  if (status != 0)
+    {
+      LOG_ERROR ("<cp.name.bactrian> plugin - " \<\< sqlite3_errmsg (db_));
+      return false;
+    }
+  
+  const char *data_tbl_str = 0;
+  char *db_err = 0;
+  
+  <cp.relations: { rel | <openTable(name=cp.name, rel=rel)>};
+                   separator="\n\n">  
+	  
+  return true;
+}
+
+bool
+<receiverName(name=cp.name)>::check_path (void)
+{
+  char delimiter = '/';
+  std::string db_filepath (
+    <cfgMgrName(name=cp.name)>::getInstance ()-\>db_filepath ());
+  
+  std::string::size_type lastPos = db_filepath.find_first_not_of (delimiter, 0);
+  std::string::size_type pos = db_filepath.find_first_of (delimiter, lastPos);
+  
+  std::string seg = db_filepath.substr (lastPos, pos - lastPos);
+  bool top_level = true;
+  
+  while (std::string::npos != pos || std::string::npos != lastPos)
+    {
+      //LOG_DEBUG ("segment: " \<\< seg);
+      int result = 0;
+      
+      switch (db_filepath[0])
+        {
+          case '/':
+            result =
+              ACE_OS::chdir (top_level
+                             ? (std::string ("/") + seg).c_str ()
+                             : seg.c_str ());
+            break;
+          case '$':
+            result =
+              ACE_OS::chdir (top_level
+                             ? ACE_OS::getenv (seg.c_str () + 1)
+                             : seg.c_str ());
+            break;
+          default:
+            result = ACE_OS::chdir (seg.c_str ());
+            break;
+        }
+
+      if (result == -1)
+        {
+          LOG_ERROR ("check_path(); error changing current directory to "
+                     \<\< seg);
+          return false;
+        }
+  
+      lastPos = db_filepath.find_first_not_of (delimiter, pos);
+      pos = db_filepath.find_first_of (delimiter, lastPos);
+      
+      // This would get caught in the next iteration but
+      // we need to check and possibly exit here.
+      if (std::string::npos == lastPos)
+        {
+          return true;
+        }
+        
+      seg = db_filepath.substr (lastPos, pos - lastPos);
+      
+      top_level = false;
+      result = ACE_OS::mkdir (seg.c_str (), S_IRWXU | S_IRWXG | S_IRWXO);
+      
+      // EEXIST is ok - directory already existed, ignore the return value.
+      if (result != 0 && errno != EEXIST)
+        {
+          LOG_ERROR ("check_path(): error creating db filepath directory "
+                     \<\< seg);
+          return false;
+        }
+    }
+    
+  return true;
+}
+>>
+
+launchQueryHandler(name) ::= <<
+if (pullRequest.mimeType == cfg_mgr-\><name.camel>MimeType ())
+  {
+    <name.bactrian>QueryHandler query_handler (db_, sender, pullRequest);
+    
+    // Error message is output elsewhere if handler fails.
+    query_handler.handleQuery ();
+    
+    return;
+  }
+>>
+
+sqlTypeMap ::= [
+        "SERIAL"     :"TEXT",
+        "FK"         :"INTEGER",
+        "FILE"       :"TEXT",
+        "INTEGER"    :"INTEGER",
+        "EXCLUSIVE"  :"INTEGER",
+        "INCLUSIVE"  :"INTEGER",
+        "BOOL"       :"INTEGER",
+        "TIMESTAMP"  :"INTEGER",
+        "LONG"       :"INTEGER",
+        "REAL"       :"REAL",
+        "GUID"       :"TEXT",
+        "TEXT"       :"TEXT",
+        "BLOB"       :"BLOB",
+        default: key
+]
+
+openTable(name, rel) ::= <<
+data_tbl_str =
+  "CREATE TABLE IF NOT EXISTS <rel.name.snake>_table ("
+	  <rel.fields: { field | "<field.name.snake> <sqlTypeMap.(field.dtype)>}; 
+                   separator=",\"\n", anchor="true">)";
+    
+sqlite3_exec (db_, data_tbl_str, 0, 0, &db_err);
+
+if (db_err != 0)
+  {
+	    LOG_ERROR ("<name.bactrian> <rel.name.snake>_table - " \<\< db_err);
+			return false;    
+  }
+>>
+
+topPushHandlerHeaderTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#ifndef <pushHandlerGuard(name=cp.name)>
+#define <pushHandlerGuard(name=cp.name)>
+
+#include "PushHandler.h"
+
+class <pushHandlerName(name=cp.name)> : public PushHandler
+{
+public:
+  <pushHandlerName(name=cp.name)> (sqlite3 *db,
+                       const ammo::gateway::PushData &pd);
+  
+  bool handlePush (void);
+  
+private:
+  <cp.relations: { rel | bool push<rel.name.bactrian> (void);};
+                   separator="\n">  
+};
+
+#endif // <pushHandlerGuard(name=cp.name)>
+>>
+
+topPushHandlerSourceTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#include \<sqlite3.h\>
+
+#include "GatewayConnector.h"
+#include "log.h"
+#include "json/value.h"
+
+#include "DataStoreUtils.h"
+
+#include "<pushHandlerName(name=cp.name)>.h"
+#include "<cfgMgrName(name=cp.name)>.h"
+
+<pushHandlerName(name=cp.name)>::<pushHandlerName(name=cp.name)> (sqlite3 *db,
+                                          const ammo::gateway::PushData &pd)
+  : PushHandler (db, pd)
+{
+}
+
+bool
+<pushHandlerName(name=cp.name)>::handlePush (void)
+{
+  <cfgMgrName(name=cp.name)> *cfg_mgr =
+    <cfgMgrName(name=cp.name)>::getInstance ();
+    
+  <cp.relations: { rel | <selectPush(name=cp.name, rel=rel)>};
+                   separator="\n\n">
+                   
+  LOG_ERROR ("Bad mime type: " \<\< pd_.mimeType);
+  return false;
+}
+
+<cp.relations: { rel | <selectedPushBody(name=cp.name, rel=rel)>};
+                 separator="\n\n">
+>>
+
+selectPush(name, rel) ::= <<
+if (pd_.mimeType == cfg_mgr-\><rel.name.camel>MimeType ())
+  {
+    return push<rel.name.bactrian> ();
+  }
+>>
+
+selectedPushBody(name, rel) ::= <<
+bool
+<pushHandlerName(name=name)>::push<rel.name.bactrian> (void)
+{
+  std::string insert_str ("insert into <rel.name.snake>_table");
+  insert_str += " values (<rel.fields: { field | ?}; separator=",">)";
+	
+  int status =
+	  sqlite3_prepare_v2 (db_, insert_str.c_str (), -1, &stmt_, 0);
+	
+  if (status != SQLITE_OK)
+    {
+      LOG_ERROR ("<rel.name.bactrian> push - "
+                 \<\< "prep of sqlite statement failed: "
+		             \<\< sqlite3_errmsg (db_));
+		
+      return false;
+    }
+    
+  Json::Value root;
+  
+  if (! DataStoreUtils::parseJson (pd_.data, root))
+    {
+      return false;
+    }
+    
+  unsigned int index = 1;
+    
+  bool good_binds =
+    <rel.fields: { field | <bindField(field=field)>}; separator="\n&& ">;
+    
+	if (good_binds)
+	  {
+      status = sqlite3_step (stmt_);
+	
+      if (status != SQLITE_DONE)
+        {
+          LOG_ERROR ("<rel.name.bactrian> push - "
+                     \<\< "insert operation failed: "
+                     \<\< sqlite3_errmsg (db_));
+		
+          return false;
+        }
+    }
+
+  return good_binds;
+}
+>>
+
+bindField(field) ::= <<
+DataStoreUtils::<sqlBindMap.(field.dtype)> (db_, stmt_, index, root["<field.name.camel>"].<jsonAccessorMap.(field.dtype)>)
+>>
+
+jsonAccessorMap ::= [
+        "SERIAL"     :"asString (), true",
+        "FK"         :"asInt ()",
+        "FILE"       :"asString (), true",
+        "INTEGER"    :"asInt ()",
+        "EXCLUSIVE"  :"asInt ()",
+        "INCLUSIVE"  :"asInt ()",
+        "BOOL"       :"asInt ()",
+        "TIMESTAMP"  :"asInt ()",
+        "LONG"       :"asInt ()",
+        "REAL"       :"asDouble ()",
+        "GUID"       :"asString (), true",
+        "TEXT"       :"asString (), true",
+        "BLOB"       :"asCString (), 0, true",
+        default: "asString (), true"
+]
+
+sqlBindMap ::= [
+        "SERIAL"     :"bind_text",
+        "FK"         :"bind_int",
+        "FILE"       :"bind_text",
+        "INTEGER"    :"bind_int",
+        "EXCLUSIVE"  :"bind_int",
+        "INCLUSIVE"  :"bind_int",
+        "BOOL"       :"bind_int",
+        "TIMESTAMP"  :"bind_int",
+        "LONG"       :"bind_int",
+        "REAL"       :"bind_double",
+        "GUID"       :"bind_text",
+        "TEXT"       :"bind_text",
+        "BLOB"       :"bind_blob",
+        default: "bind_text"
+]
+
+topQueryHandlerHeaderTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#ifndef <queryHandlerGuard(name=cp.name)>
+#define <queryHandlerGuard(name=cp.name)>
+
+#include \<string\>
+
+#include "QueryStatementBuilder.h"
+#include "StringParser.h"
+
+class sqlite3_stmt;
+
+namespace ammo
+{
+  namespace gateway
+  {
+    class PullRequest;
+    class GatewayConnector;
+  }
+}
+
+<cp.relations: { rel | <queryClassDecls(name=rel.name)>};
+                 separator="\n\n//==============================================\n\n">
+
+#endif // <queryHandlerGuard(name=cp.name)>
+>>
+
+stringMember(name) ::= <<
+std::string <name.snake>_;
+>>
+
+numericMember(name) ::= <<
+std::string <name.snake>_min_;
+std::string <name.snake>_max_;
+>>
+
+fieldMemberMap ::= [
+        "SERIAL"     : "stringMember",
+        "FK"         : "numericMember",
+        "FILE"       : "stringMember",
+        "INTEGER"    : "numericMember",
+        "EXCLUSIVE"  : "numericMember",
+        "INCLUSIVE"  : "numericMember",
+        "BOOL"       : "numericMember",
+        "TIMESTAMP"  : "numericMember",
+        "LONG"       : "numericMember",
+        "REAL"       : "numericMember",
+        "GUID"       : "stringMember",
+        "TEXT"       : "stringMember",
+        "BLOB"       : "stringMember",
+        default: "stringMember"
+]
+
+queryClassDecls(name) ::= <<
+class <queryParamParserName(name=name)> : public StringParser
+{
+public:
+  <queryParamParserName(name=name)> (void);
+
+  void parse (const std::string &params);
+
+  <rel.fields: { field | <(fieldMemberMap.(field.dtype))(field.name)> }; separator="\n">
+};
+
+class <queryStatementBuilderName(name=name)> : public QueryStatementBuilder
+{
+public:
+  <queryStatementBuilderName(name=name)> (const std::string &params,
+                                 sqlite3 *db);
+
+  // Prepares the SQL query statement and binds the param values.
+  bool build (void);
+  
+private:
+  bool bind (void);
+
+private:
+  <queryParamParserName(name=name)> parser_;
+};
+
+class <queryHandlerName(name=name)>
+{
+public:
+  <queryHandlerName(name=name)> (sqlite3 *db,
+                        ammo::gateway::GatewayConnector *sender,
+                        ammo::gateway::PullRequest &pr);
+                        
+  void handleQuery (void);
+  
+private:
+  void encode_row (sqlite3_stmt *stmt,
+                   std::string &output);
+
+private:
+  sqlite3 *db_;
+  ammo::gateway::GatewayConnector *sender_;
+  ammo::gateway::PullRequest &pr_;
+  <queryStatementBuilderName(name=name)> builder_;
+};
+>>
+
+topQueryHandlerSourceTemplate(cp) ::= <<
+// THIS IS GENERATED CODE, COPY THIS FILE ONE LEVEL UP TO BUILD AND/OR EDIT
+
+#include \<sqlite3.h\>
+
+#include "json/value.h"
+#include "json/writer.h"
+#include "log.h"
+#include "GatewayConnector.h"
+
+#include "<queryHandlerName(name=cp.name)>.h"
+#include "<cfgMgrName(name=cp.name)>.h"
+#include "DataStoreUtils.h"
+
+<cp.relations: { rel | <queryClassDefns(name=rel.name)>};
+                 separator="\n\n//==============================================\n\n">
+>>
+
+stringParamParse(name) ::= <<
+tokenize (<name.snake>_, params);
+>>
+
+numericParamParse(name) ::= <<
+tokenize (<name.snake>_min_, params);
+tokenize (<name.snake>_max_, params);
+>>
+
+parseParamMap ::= [
+        "SERIAL"     : "stringParamParse",
+        "FK"         : "numericParamParse",
+        "FILE"       : "stringParamParse",
+        "INTEGER"    : "numericParamParse",
+        "EXCLUSIVE"  : "numericParamParse",
+        "INCLUSIVE"  : "numericParamParse",
+        "BOOL"       : "numericParamParse",
+        "TIMESTAMP"  : "numericParamParse",
+        "LONG"       : "numericParamParse",
+        "REAL"       : "numericParamParse",
+        "GUID"       : "stringParamParse",
+        "TEXT"       : "stringParamParse",
+        "BLOB"       : "stringParamParse",
+        default: "stringParamParse"
+]
+
+stringFilterAdd(name) ::= <<
+this->addFilter (parser_.<name.snake>_, "<name.snake>", false)
+>>
+
+numericFilterAdd(name) ::= <<
+this->addFilter (parser_.<name.snake>_min_, "<name.snake>", true, true)
+&& this->addFilter (parser_.<name.snake>_max_, "<name.snake>", true, false)
+>>
+
+blobFilterAdd(name) ::= <<
+this->addFilter (parser_.<name.snake>_, "<name.snake>", false, false, true)
+>>
+
+addFilterMap ::= [
+        "SERIAL"     : "stringFilterAdd",
+        "FK"         : "numericFilterAdd",
+        "FILE"       : "stringFilterAdd",
+        "INTEGER"    : "numericFilterAdd",
+        "EXCLUSIVE"  : "numericFilterAdd",
+        "INCLUSIVE"  : "numericFilterAdd",
+        "BOOL"       : "numericFilterAdd",
+        "TIMESTAMP"  : "numericFilterAdd",
+        "LONG"       : "numericFilterAdd",
+        "REAL"       : "numericFilterAdd",
+        "GUID"       : "stringFilterAdd",
+        "TEXT"       : "stringFilterAdd",
+        "BLOB"       : "blobFilterAdd",
+        default: "stringFilterAdd"
+]
+
+stringBindAdd(name) ::= <<
+DataStoreUtils::bind_text (db_, stmt_, index, parser_.<name.snake>_, false)
+>>
+
+integerBindAdd(name) ::= <<
+DataStoreUtils::bind_int (db_, stmt_, index, parser_.<name.snake>_min_)
+&& DataStoreUtils::bind_int (db_, stmt_, index, parser_.<name.snake>_max_)
+>>
+
+realBindAdd(name) ::= <<
+DataStoreUtils::bind_double (db_, stmt_, index, parser_.<name.snake>_min_)
+&& DataStoreUtils::bind_double (db_, stmt_, index, parser_.<name.snake>_max_)
+>>
+
+blobBindAdd(name) ::= <<
+DataStoreUtils::bind_blob (db_, stmt_, index, parser_.<name.snake>_.c_str (), 0, false)
+>>
+
+addBindMap ::= [
+        "SERIAL"     : "stringBindAdd",
+        "FK"         : "integerBindAdd",
+        "FILE"       : "stringBindAdd",
+        "INTEGER"    : "integerBindAdd",
+        "EXCLUSIVE"  : "integerBindAdd",
+        "INCLUSIVE"  : "integerBindAdd",
+        "BOOL"       : "integerBindAdd",
+        "TIMESTAMP"  : "integerBindAdd",
+        "LONG"       : "integerBindAdd",
+        "REAL"       : "realBindAdd",
+        "GUID"       : "stringBindAdd",
+        "TEXT"       : "stringBindAdd",
+        "BLOB"       : "blobBindAdd",
+        default: "stringBindAdd"
+]
+
+stringSqlExtract(name) ::= <<
+static const Json::StaticString <name.snake> ("<name.camel>");
+json_value[<name.snake>] =
+  reinterpret_cast\<const char *\> (sqlite3_column_text (stmt, index++));
+>>
+
+integerSqlExtract(name) ::= <<
+static const Json::StaticString <name.snake> ("<name.camel>");
+json_value[<name.snake>] = sqlite3_column_int (stmt, index++);
+>>
+
+realSqlExtract(name) ::= <<
+static const Json::StaticString <name.snake> ("<name.camel>");
+json_value[<name.snake>] = sqlite3_column_double (stmt, index++);
+>>
+
+blobSqlExtract(name) ::= <<
+static const Json::StaticString <name.snake> ("<name.camel>");
+json_value[<name.snake>] = "";
+index++;
+>>
+
+sqlExtractMap ::= [
+        "SERIAL"     : "stringSqlExtract",
+        "FK"         : "integerSqlExtract",
+        "FILE"       : "stringSqlExtract",
+        "INTEGER"    : "integerSqlExtract",
+        "EXCLUSIVE"  : "integerSqlExtract",
+        "INCLUSIVE"  : "integerSqlExtract",
+        "BOOL"       : "integerSqlExtract",
+        "TIMESTAMP"  : "integerSqlExtract",
+        "LONG"       : "integerSqlExtract",
+        "REAL"       : "realSqlExtract",
+        "GUID"       : "stringSqlExtract",
+        "TEXT"       : "stringSqlExtract",
+        "BLOB"       : "blobSqlExtract",
+        default: "stringSqlExtract"
+]
+
+queryClassDefns(name) ::= <<
+<queryParamParserName(name=name)>::<queryParamParserName(name=name)> (void)
+{
+}
+
+void
+<queryParamParserName(name=name)>::parse (const std::string &params)
+{
+  <rel.fields: { field | <(parseParamMap.(field.dtype))(field.name)> }; separator="\n">
+  
+  fini_check (params);
+}
+
+<queryStatementBuilderName(name=name)>::<queryStatementBuilderName(name=name)> (
+      const std::string &params,
+      sqlite3 *db)
+  : QueryStatementBuilder (params, db, "SELECT * FROM ")
+{
+}
+
+bool
+<queryStatementBuilderName(name=name)>::build (void)
+{
+  parser_.parse (params_);
+  
+  query_str_ += "<name.snake>_table WHERE ";
+
+  bool good_adds =
+    <rel.fields: { field | <(addFilterMap.(field.dtype))(field.name)>}; separator="\n&& ">;
+    
+  if (!good_adds)
+    {
+      return false;
+    }
+
+  int status = sqlite3_prepare (db_,
+                                query_str_.c_str (),
+                                query_str_.length (),
+                                &stmt_,
+                                0);
+
+  if (status != SQLITE_OK)
+    {
+      LOG_ERROR ("Preparation of <name.bactrian> query statement failed: "
+                 \<\< sqlite3_errmsg (db_));
+
+      return false;
+    }
+
+  return this->bind ();
+}
+
+bool
+<queryStatementBuilderName(name=name)>::bind (void)
+{
+  // SQL insert indexes are 1-based.
+  unsigned int index = 1;
+
+  return
+    <rel.fields: { field | <(addBindMap.(field.dtype))(field.name)>}; separator="\n&& ">;
+}
+
+<queryHandlerName(name=name)>::<queryHandlerName(name=name)> (
+      sqlite3 *db,
+      ammo::gateway::GatewayConnector *sender,
+      ammo::gateway::PullRequest &pr)
+  : db_ (db),
+    sender_ (sender),
+    pr_ (pr),
+    builder_ (pr.query, db)
+{
+}
+
+void
+<queryHandlerName(name=name)>::handleQuery (void)
+{
+  if (!builder_.build ())
+    {
+      LOG_ERROR ("<queryHandlerName(name=name)>::handleQuery - "
+                 "construction of query statement failed");
+      return;
+    }
+    
+  // If the arg is 0, we want unlimited results.	
+  unsigned int resultLimit =
+    (pr_.maxResults == 0 ? ACE_UINT32_MAX : pr_.maxResults);
+  unsigned int index = 0;
+  unsigned int skip = 0;
+  
+  sqlite3_stmt *stmt = builder_.query ();
+  
+  std::string my_mime_type =
+    <cfgMgrName(name=cp.name)>::getInstance ()-\><name.camel>MimeType ();
+
+  while (sqlite3_step (stmt) == SQLITE_ROW
+         && index \< resultLimit)
+    {
+      if (skip++ \< pr_.startFromCount)
+        {
+          continue;
+        }
+        
+	    // For insertion, column numbers are 1-based, for extraction
+	    // they're 0-based. SQLite retrieves text as const unsigned
+	    // char*, reinterpret_cast\<\> is the only way to convert it
+	    // to const char* for std::string assignment.
+	    std::string uri (
+		    reinterpret_cast\<const char *\> (sqlite3_column_text (stmt, 0)));
+		
+      LOG_TRACE ("Sending response to " \<\< pr_.pluginId);
+      LOG_TRACE ("  type: " \<\< my_mime_type);
+      
+      ammo::gateway::PullResponse response =
+        ammo::gateway::PullResponse::createFromPullRequest (pr_);
+      response.mimeType = my_mime_type;
+      response.uri = uri;
+      this->encode_row (stmt, response.data);
+      
+      ++index;
+      
+      if (sender_ == 0)
+        {
+          // No response can be sent, but we will still see the trace
+          // and debug output up to this point.  
+          continue;
+        }
+		
+      bool good_response = sender_-\>pullResponse (response);
+		
+      if (!good_response)
+	      {
+	        LOG_ERROR ("<queryHandlerName(name=name)>::handleQuery - "
+                     "sender-\>pullResponse() failed");
+	      }
+    }
+}
+
+void
+<queryHandlerName(name=name)>::encode_row (sqlite3_stmt *stmt,
+                                  std::string &output)
+{
+  Json::Value json_value;
+  unsigned int index = 1;
+  
+  // SQLite retrieves text as const unsigned char*. Overloaded operator
+  // interprets it as bool - reinterpret_cast\<\> is the only way to
+  // convert it to const char* for recognition as text.
+  
+  <rel.fields: { field | <(sqlExtractMap.(field.dtype))(field.name)> }; separator="\n\n">
+    
+//  LOG_TRACE ("matched row: " \<\< value.toStyledString ());
+    
+  Json::FastWriter writer;
+  output = writer.write (json_value);
+}
+>>
+
+topMPCTemplate(cp) ::= <<
+// THIS IS GENERATED CODE. IF YOU COPY THIS FILE, YOU MUST DELETE
+// THE ORIGINAL, MOVE IT OUT OF THE 'GATEWAY' SUBTREE, OR CHANGE
+// THE PROJECT NAME IN THE COPY. MPC DOES NOT ALLOW DUPLICATE
+// PROJECT NAMES IN THE SAME BUILD TREE, AND WILL SKIP THE FILE.
+
+project(<cp.name.bactrian>GatewayPlugin) : aceexe, protobuf, gatewaycommon, gatewayplugin {
+  after += LibGatewayConnector LibJSON LibGatewayDataStore
+  includes += $(GATEWAY_ROOT)/LibJSON $(GATEWAY_ROOT)/DataStoreGatewayPlugin/LibGatewayDataStore
+  libs += sqlite3 gatewaydatastore
+  exename = <cp.name.bactrian>GatewayPlugin
+  
+  // Paths to SQLite lib for 32- and 64-bit machines.
+  specific(prop:make) {
+    libpaths += /usr/lib/i386-linux-gnu \
+                /usr/lib/x86_64-linux-gnu
+  }
+
+  Source_Files {
+    <cfgMgrName(name=cp.name)>.cpp
+    <pushHandlerName(name=cp.name)>.cpp
+    <queryHandlerName(name=cp.name)>.cpp
+    <receiverName(name=cp.name)>.cpp
+    main.cpp
+  }
+}>>
+

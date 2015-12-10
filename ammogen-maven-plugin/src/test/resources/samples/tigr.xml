@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content-provider name="Tigr Incident">
+
+  <sponsor name="com.ascendintelligence.TigrMobile" />
+
+	  <relation name="content base">
+	     <description>
+	       Columns which describe the event.
+	     </description>
+
+		<field type="TEXT" name="content guid" default=""> </field>
+		<field type="INTEGER" name="version id" default="0"> </field>
+		<field type="INTEGER" name="type" default="0"> </field>
+		<field type="TEXT" name="title" default=""> </field>
+		<field type="TEXT" name="status" default=""> </field>
+		<field type="TEXT" name="category id" default=""> </field>
+		<field type="TEXT" name="subcategory id" default=""> </field>
+		<field type="TEXT" name="description" default=""> </field>
+		<field type="TEXT" name="unit id" default=""> </field>
+		<field type="TEXT" name="user id" default=""> </field>
+		<field type="INTEGER" name="time zone" default="0"> </field>
+		<field type="LONG" name="revision date" default="0"> </field>
+		<field type="TIMESTAMP" name="date created" default="0"> </field>
+		<field type="TIMESTAMP" name="date modified" default="0"> </field>
+		<field type="TEXT" name="security info" default=""> </field>
+		<field type="TEXT" name="deleted" default=""> </field>
+	     </relation>
+
+	<relation name="media content">
+		<field type="FK" name="event id fk" default="0"> FK to Content Id</field>
+		<field type="TEXT" name="event GUID" default=""> Event Content Id</field>
+		<field type="TEXT" name="content GUID" default=""> COntent Unique Identifier</field>
+		<field type="TEXT" name="data" default=""> The path to the file on the mobile device </field>
+		<field type="TEXT" name="media file url" default=""> </field>
+		<field type="TEXT" name="status" default=""> Download status </field>
+		<field type="TEXT" name="title" default=""> </field>
+		<field type="TEXT" name="name" default=""> </field>
+	</relation>
+
+	<relation name="locations">
+		<field type="TEXT" name="content guid" default=""> </field>
+		<field type="FK" name="content id fk" default="0"> </field>
+		<field type="INTEGER" name="location number" default="0"> </field>
+		<field type="LONG" name="start latitude" default="0"> </field>
+		<field type="LONG" name="start longitude" default="0"> </field>
+	</relation>
+</content-provider>
